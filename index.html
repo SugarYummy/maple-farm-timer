@@ -240,6 +240,8 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .namepop .lbl{font-size:12px;color:var(--muted);margin-bottom:7px}
 .namepop .sw{width:174px}
 :root[data-theme="light"] .chatlog b{color:var(--c2,var(--c))}
+.hint b{color:var(--c)}
+:root[data-theme="light"] .hint b{color:var(--c2,var(--c))}
 .netdot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
 .netdot.on{background:var(--good)}
 .netdot.connecting{background:var(--warn);animation:blink 1s infinite}
@@ -311,6 +313,7 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .chat{display:flex;flex-direction:column;background:var(--sunk);border:1px solid var(--line);border-radius:10px;height:230px}
 .chatlog{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:3px;font-size:14px;word-break:break-word}
 .chatlog .sys{color:var(--muted);font-size:12.5px}
+.chatlog > div{padding:0 10px}
 .chatlog .sys.good,.chatlog .sys.bad,.chatlog .sys.warn{border:1px solid var(--t);border-radius:8px;padding:3px 9px;margin:1px 0;background:color-mix(in oklab,var(--t) 8%,transparent)}
 .chatlog .sys.good{--t:var(--good)}
 .chatlog .sys.bad{--t:var(--bad)}
@@ -1608,11 +1611,17 @@ function randomClass(not) {
   return n;
 }
 function hue(str) { let h = 0; for (const ch of String(str)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return NAME_COLORS[h % NAME_COLORS.length]; }
-// a player's name color: the one they picked, or one made from their name
-const nameColor = (name, color) => /^#[0-9a-f]{6}$/i.test(color || "") ? color : hue(name);
-const myColor = () => nameColor(ME.name, ME.color);
-const nameStyle = (name, color) => { const c = nameColor(name, color); return `--c:${c};--c2:${NAME_DEEP[c.toLowerCase()] || c}`; };
-const avatar = (name, color) => `<span class="av" style="--c:${nameColor(name, color)}">${esc((String(name).trim()[0] || "?").toUpperCase())}</span>`;
+// a player's name color: the one they picked, or one made from who they are (so renaming keeps it)
+const nameColor = (seed, color) => /^#[0-9a-f]{6}$/i.test(color || "") ? color : hue(seed);
+const myColor = () => nameColor(ME.cid, ME.color);
+const nameStyle = (seed, color) => { const c = nameColor(seed, color); return `--c:${c};--c2:${NAME_DEEP[c.toLowerCase()] || c}`; };
+const avatar = (name, color, seed) => `<span class="av" style="--c:${nameColor(seed || name, color)}">${esc((String(name).trim()[0] || "?").toUpperCase())}</span>`;
+// a name in chat: bold in the player's current color. If they renamed since, the new name follows in brackets.
+function nameHTML(name, color, cid, showNew) {
+  const now = cid && N.people[cid];
+  const label = esc(name) + (showNew && now && now.name !== name ? ` (${esc(now.name)})` : "");
+  return `<b style="${nameStyle(cid || name, now ? now.color : color)}">${label}</b>`;
+}
 function renderName() {
   const b = $("#nameBtn");
   b.innerHTML = avatar(ME.name, myColor()) + `<span>${esc(ME.name)}</span>`;
@@ -1659,7 +1668,7 @@ $("#nameBtn").onclick = () => {
 
 /* ---------- lobby connection ---------- */
 const LOBBY_URL = new URLSearchParams(location.search).get("server") || "wss://farm.ima.moe/ws";
-const N = {ws: null, state: "off", offset: 0, best: Infinity, room: null, chat: [], lobby: null, retry: 0, pending: null, wantOpen: false};
+const N = {ws: null, state: "off", offset: 0, best: Infinity, room: null, chat: [], lobby: null, retry: 0, pending: null, wantOpen: false, people: {}};
 function connect() {
   if (N.ws && N.ws.readyState <= 1) return;
   N.wantOpen = true; N.state = "connecting"; renderNet();
@@ -1741,6 +1750,13 @@ function applyRoom(room) {
   const prev = N.room;
   const wasGuest = isGuest();
   N.room = room;
+  // latest name + color of everyone seen in this room, so old chat lines follow renames and color changes
+  let peopleChanged = false;
+  room.members.forEach(m => {
+    const was = N.people[m.cid];
+    if (!was || was.name !== m.name || was.color !== m.color) { N.people[m.cid] = {name: m.name, color: m.color}; peopleChanged = true; }
+  });
+  if (peopleChanged && prev && prev.code === room.code) renderChat();
   if (room.master !== ME.cid) S.roomTpl = room.template;
   if (prev && prev.code === room.code && prev.master !== ME.cid && room.master === ME.cid) adoptRoomPreset();
   if (!prev || prev.code !== room.code) { S.sel = null; renderChat(); }
@@ -1861,7 +1877,7 @@ async function toggleReady() {
 function seatRow(m, extra, no) {
   const r = N.room;
   const crown = m.cid === r.master ? `<span class="crown" data-tip="Room Host" aria-label="Room Host"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5z"/></svg></span>` : "";
-  return `<div class="seat ${m.online ? "" : "off"}">${no ? `<span class="seatno">${no}</span>` : ""}${avatar(m.name, m.color)}<span class="nm">${esc(m.name)}${m.cid === ME.cid ? '<span class="you">you</span>' : ""}</span>${crown}${extra || ""}</div>`;
+  return `<div class="seat ${m.online ? "" : "off"}">${no ? `<span class="seatno">${no}</span>` : ""}${avatar(m.name, m.color, m.cid)}<span class="nm">${esc(m.name)}${m.cid === ME.cid ? '<span class="you">you</span>' : ""}</span>${crown}${extra || ""}</div>`;
 }
 function readyMark(m) { return `<span class="rstate ${m.ready ? "ok" : ""}">${m.ready ? ICON.check : "&middot;"}</span>`; }
 function showReady() {
@@ -1999,7 +2015,7 @@ function renderRoom() {
     const m = N.room && N.room.members.find(x => x.cid === b.dataset.host);
     if (!m) return;
     const yes = await confirmBox({
-      art: avatar(m.name, m.color) + `<span class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5z"/></svg></span>`,
+      art: avatar(m.name, m.color, m.cid) + `<span class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5z"/></svg></span>`,
       title: `Make ${m.name} the Room Host?`,
       text: "You won't be able to edit the preset or start farming.",
       ok: "Make Host"
@@ -2026,7 +2042,7 @@ function renderRoomActions() {
     box.innerHTML = `<button class="btn big accent" id="raStart">${ICON.play}Ready check</button>`;
     $("#raStart").onclick = () => { ensureAudio(); send({t: "start"}); };
   } else {
-    box.innerHTML = `<span class="hint">Waiting for ${esc(master ? master.name : "the Room Host")} to start</span>`;
+    box.innerHTML = `<span class="hint">Waiting for ${master ? nameHTML(master.name, master.color, master.cid, false) : "the Room Host"} to start</span>`;
   }
 }
 async function copyInvite() {
@@ -2071,7 +2087,7 @@ function sysLineHTML(l) {
     const name = String(w.name || "");
     const i = name ? text.indexOf(name, at) : -1;
     if (i < 0) return;
-    html += esc(text.slice(at, i)) + `<b style="${nameStyle(name, w.color)}">${esc(name)}</b>`;
+    html += esc(text.slice(at, i)) + nameHTML(name, w.color, w.cid, !l.rename);
     at = i + name.length;
   });
   return html + esc(text.slice(at));
@@ -2081,7 +2097,7 @@ function addChatLine(l, scroll) {
   const near = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
   const div = document.createElement("div");
   if (l.sys) { div.className = "sys" + (["good", "bad", "warn"].includes(l.tone) ? " " + l.tone : ""); div.innerHTML = sysLineHTML(l); }
-  else div.innerHTML = `<b style="${nameStyle(l.name, l.color)}">${esc(l.name)}</b> ${esc(l.text)}`;
+  else div.innerHTML = `${nameHTML(l.name, l.color, l.cid, true)} ${esc(l.text)}`;
   log.appendChild(div);
   if (!scroll || near) log.scrollTop = log.scrollHeight;
 }
