@@ -156,6 +156,15 @@ select.sel:focus,input.inp:focus{border-color:var(--accent)}
 .pop button:hover{background:var(--sunk)}
 .pop button.danger{color:var(--bad)}
 .pop svg{width:16px;height:16px}
+.modal{position:fixed;inset:0;background:rgba(5,8,14,.55);display:none;align-items:center;justify-content:center;z-index:70;padding:16px}
+.modal.show{display:flex}
+.dialog{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;width:min(420px,100%);box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.dialog h3{font-family:var(--display);font-size:20px;margin:0 0 4px}
+.dialog .meta{color:var(--muted);font-size:13px;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.chip{--c:var(--accent);display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px 3px 8px;font-size:12.5px;font-weight:600;background:color-mix(in oklab,var(--c) 16%,var(--sunk));border:1px solid color-mix(in oklab,var(--c) 45%,var(--line))}
+.chip .dot{width:8px;height:8px;box-shadow:none}
+.dialog .row{justify-content:flex-end}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:9px 10px 9px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 8px 26px rgba(0,0,0,.45);transition:opacity .2s,transform .2s;z-index:60;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%);pointer-events:auto}
 .toast button{background:transparent;border:0;color:var(--accent);font-weight:700;padding:4px 8px;border-radius:6px}
@@ -188,6 +197,7 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
         <button data-tpl="del" class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/></svg>Delete</button>
       </div>
     </div>
+    <button class="btn ghost" id="shareBtn" title="Copy a link to this preset"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Copy link</button>
     <div class="spacer"></div>
     <button class="btn icon ghost" id="themeBtn" aria-label="Switch theme" title="Switch theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
   </header>
@@ -227,6 +237,14 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
 </div>
 
 <div class="tip" id="tip"></div>
+<div class="modal" id="importModal">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="impName">
+    <h3 id="impName"></h3>
+    <div class="meta" id="impMeta"></div>
+    <div class="chips" id="impChips"></div>
+    <div class="row"><button class="btn ghost" id="impNo">Not now</button><button class="btn accent" id="impYes">Add preset</button></div>
+  </div>
+</div>
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="toastUndo">Undo</button></div>
 <input type="file" id="fileIn" accept="audio/*" multiple hidden>
 
@@ -830,12 +848,12 @@ $("#toastUndo").onclick = () => { undo(); };
 document.addEventListener("keydown", e => {
   const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.activeElement.isContentEditable;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !typing) { e.preventDefault(); undo(); return; }
-  if (e.code === "Space" && !typing) {
+  if (e.code === "Space" && !typing && !$("#importModal").classList.contains("show")) {
     e.preventDefault();
     if (document.activeElement && document.activeElement.tagName === "BUTTON") document.activeElement.blur();
     S.run ? stop() : start();
   }
-  if (e.key === "Escape") { S.sel = null; select(null, true); }
+  if (e.key === "Escape") { $("#importModal").classList.remove("show"); S.sel = null; select(null, true); }
 });
 $("#themeBtn").onclick = () => {
   const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
@@ -844,6 +862,74 @@ $("#themeBtn").onclick = () => {
 $("#resumeBtn").onclick = () => schedule();
 let resizeTimer;
 window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderRuler, 120); tick(); });
+
+/* ---------- share links (no server, everything is in the link) ---------- */
+const b64u = {
+  enc: bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
+  dec: str => Uint8Array.from(atob(str.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0))
+};
+async function pipe(bytes, stream) {
+  return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
+}
+async function encodePreset(t) {
+  const data = JSON.stringify({n: t.name, l: t.length, t: t.tracks.map(x => [x.name, x.color, x.sound, x.last, x.first, x.every, x.count])});
+  const raw = new TextEncoder().encode(data);
+  if (window.CompressionStream) {
+    try { return "z" + b64u.enc(await pipe(raw, new CompressionStream("deflate-raw"))); } catch (e) {}
+  }
+  return "j" + b64u.enc(raw);
+}
+async function decodePreset(code) {
+  let bytes = b64u.dec(code.slice(1));
+  if (code[0] === "z") bytes = await pipe(bytes, new DecompressionStream("deflate-raw"));
+  const d = JSON.parse(new TextDecoder().decode(bytes));
+  const num = (v, lo, hi, dflt) => { v = +v; return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : dflt; };
+  let missing = 0;
+  const known = id => { if (id && (BUILTIN[id] || S.custom[id])) return id; if (id) missing++; return null; };
+  const tracks = (d.t || []).slice(0, 20).map((x, i) => ({
+    id: uid(),
+    name: String(x[0] || "Timer").slice(0, 40),
+    color: COLORS.includes(x[1]) ? x[1] : COLORS[i % COLORS.length],
+    sound: known(x[2]) || "meow1",
+    last: x[3] ? (known(x[3]) || "meow1") : null,
+    first: num(x[4], 0, 86400, 0),
+    every: num(x[5], 0, 86400, 0),
+    count: Math.round(num(x[6], 1, 200, 1))
+  }));
+  if (!tracks.length) throw new Error("empty preset");
+  return {t: {id: uid(), name: String(d.n || "Shared preset").slice(0, 40), length: num(d.l, 30, 86400, 1800), tracks}, missing};
+}
+async function copyLink() {
+  const url = location.origin + location.pathname + "#p=" + await encodePreset(tpl());
+  try { await navigator.clipboard.writeText(url); flash("Link copied"); }
+  catch (e) { prompt("Copy this link", url); }
+}
+$("#shareBtn").onclick = copyLink;
+
+async function checkImport() {
+  const m = location.hash.match(/^#p=([zj][A-Za-z0-9_-]+)$/);
+  if (!m) return;
+  history.replaceState(null, "", location.pathname + location.search);
+  let res;
+  try { res = await decodePreset(m[1]); } catch (e) { flash("That preset link is broken"); return; }
+  const t = res.t, loops = t.tracks.filter(x => x.count > 1).length;
+  $("#impName").textContent = t.name;
+  $("#impMeta").textContent = `${fmt(t.length, true)} \u00b7 ${t.tracks.length} timer${t.tracks.length > 1 ? "s" : ""}` + (res.missing ? " \u00b7 custom sounds swapped for Meow 1" : "");
+  $("#impChips").innerHTML = t.tracks.map(x => `<span class="chip" style="--c:${x.color}"><span class="dot"></span>${esc(x.name)}${x.count > 1 ? " \u00d7" + x.count : ""}</span>`).join("");
+  $("#importModal").classList.add("show");
+  $("#impNo").onclick = () => $("#importModal").classList.remove("show");
+  $("#impYes").onclick = () => {
+    const names = new Set(S.templates.map(x => x.name));
+    let name = t.name, n = 2;
+    while (names.has(name)) name = `${t.name} (${n++})`;
+    t.name = name;
+    S.templates.push(t); S.cur = t.id; S.sel = null; S.undo = [];
+    save(); renderAll();
+    $("#importModal").classList.remove("show");
+    flash("Preset added");
+  };
+}
+window.addEventListener("hashchange", checkImport);
 
 function renderAll() { renderTemplates(); renderControls(); renderLanes(); renderInspector(); renderSounds(); }
 
@@ -854,6 +940,7 @@ function renderAll() { renderTemplates(); renderControls(); renderLanes(); rende
   if (S.run) $("#resumeBtn").classList.add("show");
   renderAll();
   setInterval(tick, 250);
+  checkImport();
 })();
 </script>
 </body>
