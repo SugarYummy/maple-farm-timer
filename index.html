@@ -389,7 +389,7 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
     <div class="row"><h2>Lobby</h2><span class="spacer"></span><button class="btn icon ghost" id="lobbyClose" aria-label="Close lobby"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     <div class="lobby-top">
       <button class="btn accent" id="newRoomBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Create room</button>
-      <form id="codeForm" class="row" style="margin:0"><input class="inp code-in" id="codeIn" placeholder="CODE" maxlength="4" autocomplete="off" spellcheck="false"><button class="btn">Join</button></form>
+      <form id="codeForm" class="row" style="margin:0"><input class="inp code-in" id="codeIn" placeholder="CODE" maxlength="300" autocomplete="off" spellcheck="false"><button class="btn">Join</button></form>
     </div>
     <div class="form" id="createForm">
       <div class="f"><label>Title</label><input class="inp" id="cTitle" maxlength="50"></div>
@@ -1645,8 +1645,17 @@ function connect() {
 }
 function send(m) { if (N.ws && N.ws.readyState === 1) N.ws.send(JSON.stringify(m)); }
 setInterval(() => { if (N.state === "on") send({t: "ping", c: Date.now()}); }, 30000);
+// "ZYTE", "zyte" or a pasted invite link (...#room=ZYTE) -> "ZYTE"
+function roomCodeFrom(text) {
+  text = String(text || "");
+  const m = text.match(/room=([A-Za-z]+)/i);
+  if (m) return m[1].toUpperCase();
+  const words = text.match(/[A-Za-z]+/g) || [];
+  if (text.includes("/")) return (words[words.length - 1] || "").toUpperCase();   // some other link
+  return words.join("").toUpperCase().slice(0, 12);
+}
 function joinCode(code) {
-  code = String(code || "").trim().toUpperCase();
+  code = roomCodeFrom(code);
   if (!code) return;
   N.pending = code;
   if (N.state === "on") send({t: "join", code}); else connect();
@@ -1913,6 +1922,10 @@ $("#cGo").onclick = () => {
   send({t: "create", title: $("#cTitle").value || $("#cTitle").placeholder, desc: $("#cDesc").value, public: segValue($("#cVis")), template: templatePayload(tpl())});
   $("#createForm").classList.remove("show"); $("#cTitle").value = ""; $("#cDesc").value = "";
 };
+$("#codeIn").addEventListener("input", () => {
+  const el = $("#codeIn"), code = roomCodeFrom(el.value);
+  if (el.value !== code) el.value = code;
+});
 $("#codeForm").onsubmit = e => { e.preventDefault(); const v = $("#codeIn").value; $("#codeIn").value = ""; joinCode(v); };
 
 function inviteLink() { return location.origin + location.pathname + "#room=" + N.room.code; }
