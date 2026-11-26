@@ -19,6 +19,7 @@
   --accent:#d9541e;--on-accent:#ffffff;--good:#1f8a4c;--bad:#c93b3f;--warn:#a96a12;
 }
 *{box-sizing:border-box}
+button{touch-action:manipulation}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -44,6 +45,8 @@ h2{font-family:var(--display);font-size:15px;font-weight:700;margin:0;letter-spa
 .btn svg{width:18px;height:18px;flex:none}
 select.sel,input.inp{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:7px 10px;outline:none;min-width:0}
 select.sel:focus,input.inp:focus{border-color:var(--accent)}
+/* keyboard users can see where they are */
+button:focus-visible,select:focus-visible,[tabindex]:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tpl{font-family:var(--display);font-weight:700;font-size:15px}
 
 /* live */
@@ -55,8 +58,8 @@ select.sel:focus,input.inp:focus{border-color:var(--accent)}
 .clock .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .clock .time{font-family:var(--display);font-weight:700;font-size:40px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .clock .sub{color:var(--muted);font-size:13px}
-.nexts{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px}
-.next{--c:var(--accent);background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px;position:relative;overflow:hidden}
+.nexts{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;margin-bottom:14px}
+.next{--c:var(--accent);max-width:300px;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:10px 12px;position:relative;overflow:hidden}
 .next::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
 .next .nm{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .next .cd{font-family:var(--display);font-weight:700;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.2}
@@ -82,7 +85,7 @@ select.sel:focus,input.inp:focus{border-color:var(--accent)}
 .lane:hover .ldel{opacity:1}
 .ldel:hover{color:var(--bad);background:color-mix(in oklab,var(--bad) 14%,transparent)}
 .farmlock .ldel{visibility:hidden}
-.ruler{height:34px}
+.ruler{height:44px}
 .ruler .bar{position:relative;height:100%;border-bottom:1px solid var(--line)}
 .tick{position:absolute;bottom:0;height:8px;border-left:1px solid var(--line)}
 .tick span{position:absolute;bottom:9px;left:0;transform:translateX(-50%);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -130,7 +133,8 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .endin{top:0;transform:translateX(-50%);width:84px;border-radius:6px}
 .lhead .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lhead .sm{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
-.ltrack{position:relative;height:58px;touch-action:none;cursor:default}
+.ltrack{position:relative;height:58px;touch-action:pan-y;cursor:default}
+.ltrack .mk,.ltrack .cnt{touch-action:none}
 .ltrack .rail{position:absolute;left:0;right:0;top:50%;height:2px;background:color-mix(in oklab,var(--c) 30%,transparent);transform:translateY(-50%)}
 .mk{position:absolute;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--c);border:2px solid var(--surface);cursor:grab;transition:transform .12s,opacity .2s;z-index:2}
 .mk:hover{transform:scale(1.3)}
@@ -148,7 +152,19 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .lane:hover .cnt.one,.lane.sel .cnt.one{opacity:1}
 @media (hover:none){.kb{display:none}}
 .playhead{position:absolute;top:0;bottom:0;width:2px;background:var(--fg);pointer-events:none;z-index:4;display:none}
-.playhead::before{content:"";position:absolute;top:-2px;left:-5px;border:6px solid transparent;border-top-color:var(--fg)}
+.playhead::before{content:attr(data-t);position:absolute;top:0;left:1px;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* faint guide lines under the lanes, one per ruler label, plus the end line */
+.tlgrid{position:absolute;top:44px;bottom:0;left:var(--head);right:var(--tail);pointer-events:none}
+.tlgrid i{position:absolute;top:0;bottom:0;width:1px;background:color-mix(in oklab,var(--line) 50%,transparent)}
+.tlgrid i.end{width:0;background:none;border-left:1.5px dashed color-mix(in oklab,var(--accent) 55%,transparent)}
+.tlgrid .past{position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in oklab,var(--line) 35%,transparent) 6px 7px)}
+#lanes{position:relative}
+/* hover the timeline to see the exact time under the mouse */
+.hoverline{position:absolute;top:22px;bottom:0;width:0;border-left:1px dashed color-mix(in oklab,var(--fg) 45%,transparent);pointer-events:none;z-index:3;display:none}
+.hoverline::before{content:attr(data-t);position:absolute;top:0;left:0;transform:translate(-50%,-100%);background:var(--raise);border:1px solid var(--line);color:var(--fg);font-size:11px;font-weight:600;padding:0 6px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hoverline.show{display:block}
+@media (hover:none){.hoverline{display:none !important}}
+.tick.minor{height:4px;border-left-color:color-mix(in oklab,var(--line) 70%,transparent)}
 .playhead.show{display:block}
 .timeline.locked .mk,.timeline.locked .cnt,.timeline.locked .endh{cursor:default}
 .lockable{position:relative}
@@ -252,9 +268,25 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 .roomcard{background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s}
 .roomcard:hover{border-color:var(--accent)}
-.roomcard .tt{font-family:var(--display);font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.roomcard{position:relative;overflow:hidden;min-width:0}
+.roomcard .rc-top{display:flex;align-items:center;gap:8px;min-width:0}
+.roomcard .tt{font-family:var(--display);font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .roomcard .ds{color:var(--muted);font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.roomcard .bt{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:4px}
+.roomcard .rc-meta{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);min-width:0}
+.roomcard .rc-meta .pn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.roomcard .rc-time{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;color:var(--fg);white-space:nowrap}
+.roomcard .bt{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:4px;min-width:0}
+.roomcard .bt .rc-count{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.roomcard .bt .btn{flex:none}
+.roomcard .rc-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:color-mix(in oklab,var(--accent) 15%,transparent)}
+.roomcard .rc-bar i{display:block;height:100%;background:var(--accent);width:0}
+.rstat{flex:none;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.rstat::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.rstat.s-live{color:var(--good);border-color:color-mix(in oklab,var(--good) 55%,var(--line))}
+.rstat.s-live::before{animation:blink 1.4s infinite}
+.rstat.s-starting,.rstat.s-check{color:var(--warn);border-color:color-mix(in oklab,var(--warn) 55%,var(--line))}
+.rstat.s-done{color:var(--accent);border-color:color-mix(in oklab,var(--accent) 55%,var(--line))}
+.rstat.s-stopped{color:var(--bad);border-color:color-mix(in oklab,var(--bad) 55%,var(--line))}
 .seats{display:flex;gap:4px}
 .seats i{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--muted)}
 .seats i.f{background:var(--good);border-color:var(--good)}
@@ -333,6 +365,8 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .confd .row{justify-content:center;margin-top:6px}
 .confav{display:flex;justify-content:center;align-items:center;gap:8px;margin:4px 0 12px}
 .confav .av{width:44px;height:44px;font-size:20px}
+.confin{width:100%;margin:4px 0 2px;font-size:15px;padding:9px 12px}
+.btn.big.danger{background:var(--bad);border-color:var(--bad);color:#fff}
 .confav .crown{width:30px;height:30px}
 .endd{text-align:center;width:min(400px,100%)}
 .endd .row{justify-content:center}
@@ -354,19 +388,41 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
 .hint{color:var(--muted);font-size:12.5px}
 
 @media (max-width:980px){
-  .wrap.inroom .layout{grid-template-columns:1fr}
+  .wrap.inroom .layout{grid-template-columns:1fr;display:flex;flex-direction:column;align-items:stretch;gap:14px}
+  .wrap.inroom .layout > *, .wrap.inroom .main > *{min-width:0}
+  /* in a room on small screens: timer, then seats + chat, then the timeline and sounds */
+  .wrap.inroom .main{display:contents}
+  .wrap.inroom #livePanel{order:1}
+  .wrap.inroom #roomPanel{order:2}
+  .wrap.inroom #tlPanel{order:3}
+  .wrap.inroom #soundsPanel{order:4}
   .side{position:static;max-height:none}
   .side .chat{height:280px;flex:none}
 }
 @media (max-width:720px){
-  :root{--head:120px;--tail:30px}
+  :root{--head:12px;--tail:12px}
+  .tlgrid{display:none}
+  .playhead{background:color-mix(in oklab,var(--fg) 40%,transparent)}
+  /* iPhones zoom the page when a text box is smaller than 16px */
+  input,select,textarea,.namepill input{font-size:16px !important}
   .ldel{opacity:.6}
+  .lane{position:relative;grid-template-rows:auto 34px;padding-bottom:6px}
+  .lane .lhead{grid-column:1 / 4;grid-row:1;padding-right:44px}
+  .lane .ltrack{grid-column:2;grid-row:2}
+  .lane > span:last-child,.lane .ldel{position:absolute;right:6px;top:8px}
+  .nexts{grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+  .next{padding:8px 10px}
+  .next .cd{font-size:20px}
+  .next .ct{right:8px;top:7px;font-size:11px}
+  .live > div{width:100%}
+  .controls{justify-content:center}
+  .cnt{display:none}
+  .sounds{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .form{grid-template-columns:1fr}
   .namepill span:last-child{max-width:90px}
   .live{grid-template-columns:1fr;justify-items:center}
   .clock{width:160px;height:160px}
   .vol{margin-left:0}
-  .lhead .sm{display:none}
   .f.wide{grid-column:auto}
 }
 </style>
@@ -375,10 +431,10 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
 <div class="wrap">
   <header>
     <h1><svg class="logo" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="var(--accent)" stroke-width="3.5"/><path d="M16 9v8l5 3" stroke="var(--accent)" stroke-width="3" fill="none" stroke-linecap="round"/></svg>MapleStory Farming Timer</h1>
-    <select class="sel tpl" id="tplSel" aria-label="Template"></select>
+    <select class="sel tpl" id="tplSel" aria-label="Preset"></select>
     <span class="tpl" id="guestPreset" hidden></span>
     <div class="menu" id="tplMenu">
-      <button class="btn icon ghost" id="tplMenuBtn" aria-label="Template options"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+      <button class="btn icon ghost" id="tplMenuBtn" aria-label="Preset options"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
       <div class="pop">
         <button data-tpl="new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>New</button>
         <button data-tpl="dup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/></svg>Duplicate</button>
@@ -412,7 +468,7 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
     <div id="roomList"></div>
   </section>
 
-  <section class="panel">
+  <section class="panel" id="livePanel">
     <div class="live">
       <div class="clock">
         <svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="44" fill="none" stroke-width="7"/><circle class="ring" id="ring" cx="50" cy="50" r="44" fill="none" stroke-width="7" stroke-linecap="round"/></svg>
@@ -433,14 +489,16 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
     </div>
     <div class="timeline" id="timeline">
       <div class="ruler"><div></div><div class="bar" id="ruler"></div><div></div></div>
+      <div class="tlgrid" id="tlgrid"></div>
       <div id="lanes"></div>
       <div class="playhead" id="playhead"></div>
+      <div class="hoverline" id="hoverline"></div>
     </div>
     <button class="btn add" id="addTrack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add timer</button>
     <div class="insp" id="insp"></div>
   </section>
 
-  <section class="panel">
+  <section class="panel" id="soundsPanel">
     <h2>Sounds</h2>
     <div class="sounds" id="sounds"></div>
   </section>
@@ -499,6 +557,7 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
     <div class="confav" id="confAv"></div>
     <h3 id="confTitle"></h3>
     <div class="meta" id="confText"></div>
+    <input class="inp confin" id="confIn" hidden autocomplete="off" spellcheck="false">
     <div class="row"><button class="btn big ghost" id="confNo">Cancel</button><button class="btn big accent" id="confYes"></button></div>
   </div>
 </div>
@@ -761,12 +820,26 @@ async function scheduleCountdown(startLocalMs) {
   A.cd.push(src);
 }
 // browsers only allow sound after a click, so wake audio on the first one
-document.addEventListener("pointerdown", () => { if (!A.ctx || A.ctx.state !== "running") ensureAudio(); }, true);
+document.addEventListener("pointerdown", async () => {
+  if (A.ctx && A.ctx.state === "running") return;
+  await ensureAudio();
+  // after a reload in the middle of a run: any tap brings the alarms back, not just the button
+  if (S.run && $("#resumeBtn").classList.contains("show")) schedule();
+}, true);
 async function ensureAudio() {
   if (!A.ctx) {
     A.ctx = new (window.AudioContext || window.webkitAudioContext)();
     A.gain = A.ctx.createGain();
     A.gain.connect(A.ctx.destination);
+    // phones can pause the sound engine mid-run (calls, headphones, background). When it pauses,
+    // ask for a tap; when it comes back, re-time every alarm so nothing plays late.
+    let wasRunning = false;
+    A.ctx.onstatechange = () => {
+      const running = A.ctx.state === "running";
+      if (S.run && !running) $("#resumeBtn").classList.add("show");
+      if (S.run && running && !wasRunning && A.sources.length) schedule();
+      wasRunning = running;
+    };
   }
   A.gain.gain.value = S.vol;
   if (A.ctx.state !== "running") await A.ctx.resume();
@@ -817,6 +890,7 @@ async function schedule() {
 /* ---------- run control ---------- */
 const elapsed = () => S.run ? (Date.now() - S.run.start) / 1000 : 0;
 async function start() {
+  if (!tpl().tracks.length) return;    // nothing to play
   await ensureAudio();
   const lead = S.countdown === "off" ? 60 : S.countdown === CD_CLIP && UI_SOUNDS.countdown ? CD_LEAD_MS : 3000;
   S.run = {start: Date.now() + lead, tpl: JSON.parse(JSON.stringify(tpl())), id: S.cur};
@@ -860,7 +934,8 @@ function tick() {
   if (run && el >= t.length) {
     stopLocal();
     if (run.id === "room") showEnd({reason: "done", by: "", start_at: run.serverStart, at: Date.now() + N.offset, template: run.tpl});
-    else { uiSound("stop"); flash("Farming done"); }
+    else if (el - t.length < 300) showEnd({reason: "done", by: "", start_at: run.start, at: Date.now(), template: run.tpl, local: true});
+    // (a run that ended long ago, while the page was closed, just clears quietly)
     return;
   }
   if (run) { if (el < -0.02) showCountdown(cdNumber(-el)); else if (S.counting) hideReady(); }
@@ -910,13 +985,15 @@ function tick() {
   readyTimer();
 
   // live countdowns on lobby room cards
-  document.querySelectorAll("[data-end]").forEach(b => { b.textContent = "farming \u00b7 " + cd((+b.dataset.end - Date.now() - N.offset) / 1000) + " left"; });
+  updateRoomCards();
 
   // playhead + played markers
   const ph = $("#playhead");
   if (run && (run.id === S.cur || (run.id === "room" && inRoom()))) {
     ph.classList.add("show");
     ph.style.left = `calc(var(--head) + (100% - var(--head) - var(--tail)) * ${el / scale()})`;
+    const label = fmt(Math.floor(el));
+    if (ph.dataset.t !== label) ph.dataset.t = label;
     document.querySelectorAll(".mk[data-at]").forEach(m => {
       const at = +m.dataset.at;
       m.classList.toggle("played", at < el - 0.3);
@@ -941,7 +1018,7 @@ function renderControls() {
     $("#stopBtn").onclick = stop;
     $("#restartBtn").onclick = restart;
   } else {
-    c.innerHTML = `<button class="btn big accent" id="startBtn">${ICON.play}Start Farming</button>${vol}`;
+    c.innerHTML = `<button class="btn big accent" id="startBtn" ${tpl().tracks.length ? "" : "disabled"}>${ICON.play}Start Farming</button>${vol}`;
     $("#startBtn").onclick = start;
   }
   $("#volIn").oninput = e => { S.vol = +e.target.value; localStorage.setItem(KEY.vol, S.vol); if (A.gain) A.gain.gain.value = S.vol; };
@@ -966,12 +1043,18 @@ function renderRuler() {
   const width = r.getBoundingClientRect().width || 800;
   const steps = [15, 30, 60, 120, 300, 600, 900, 1800, 3600];
   const step = steps.find(st => st >= niceStep(t.length) && (st / sc) * width >= 48) || 3600;
-  const clear = (60 / width) * sc;
-  let h = "";
+  const clear = (16 / width) * sc;   // only hide a label sitting right on the end line
+  let h = "", grid = "";
+  // small ticks between the labels (every minute when the labels are 5 minutes apart)
+  const minor = [step / 5, step / 4, step / 3, step / 2].find(m => m >= 15 && Number.isInteger(m) && (m / sc) * width >= 10);
+  if (minor) for (let x = minor; x < sc; x += minor) if (x % step) h += `<div class="tick minor" style="left:${pct(x)}"></div>`;
   for (let x = 0; x <= sc + 0.001; x += step) {
     const label = x === 0 || Math.abs(x - t.length) > clear ? fmt(x) : "";
     h += `<div class="tick" style="left:${pct(x)}"><span>${label}</span></div>`;
+    if (x > 0 && Math.abs(x - t.length) > 0.5) grid += `<i style="left:${x / sc * 100}%"></i>`;
   }
+  grid += `<i class="end" style="left:${t.length / sc * 100}%"></i><div class="past" style="left:${t.length / sc * 100}%"></div>`;
+  $("#tlgrid").innerHTML = grid;
   h += `<div class="after" style="left:${pct(t.length)}"></div>`;
   h += `<div class="endh ${t.length / sc > 0.8 ? "flip" : ""}" id="endh" style="left:${pct(t.length)}" data-label="${fmt(t.length, true)} end"></div>`;
   r.innerHTML = h;
@@ -1003,6 +1086,7 @@ function renderLanes() {
     const mb = el.querySelector(".mute"); if (mb) mb.onclick = () => toggleMute(id);
   });
   renderRuler();
+  const sb = $("#startBtn"); if (sb) sb.disabled = !t.tracks.length;   // nothing to play yet
   tick();
 }
 function markersHTML(tr) {
@@ -1039,13 +1123,30 @@ function timeAt(clientX, el) {
 function showTip(x, y, text) { const tip = $("#tip"); tip.textContent = text; tip.style.left = x + "px"; tip.style.top = y + "px"; tip.classList.add("show"); }
 function hideTip() { $("#tip").classList.remove("show"); }
 
+// hover guide: a dashed line with the time under the mouse (not while dragging or over a marker)
+(() => {
+  const tl = $("#timeline"), line = $("#hoverline");
+  const hide = () => line.classList.remove("show");
+  tl.addEventListener("pointermove", e => {
+    const tr = e.target.closest(".ltrack, #ruler");
+    if (!tr || S.dragging || e.pointerType === "touch" || e.target.closest(".mk,.cnt,.endh")) return hide();
+    const box = tl.getBoundingClientRect(), r = tr.getBoundingClientRect();
+    const at = Math.max(0, Math.min(scale(), (e.clientX - r.left) / r.width * scale()));
+    line.style.left = (e.clientX - box.left) + "px";
+    line.dataset.t = fmt(Math.round(at));
+    line.classList.add("show");
+  });
+  tl.addEventListener("pointerleave", hide);
+  tl.addEventListener("pointerdown", hide);
+})();
 function dragLane(e, el) {
   if (!canEdit()) return;
   const tr = track(el.dataset.id);
   const target = e.target;
-  select(tr.id, true);
   const isCount = target.dataset.act === "count";
   const isMk = target.classList.contains("mk") && !target.classList.contains("cut");
+  // a finger on an empty part of a track is usually scrolling the page, so don't open the timer then
+  if (isCount || isMk || e.pointerType !== "touch") select(tr.id, true);
   if (!isCount && !isMk) return;
   e.preventDefault();
   const i = isMk ? +target.dataset.i : null;
@@ -1411,7 +1512,7 @@ function renderSounds() {
     const del = row.querySelector('[data-act="del"]');
     if (del) del.onclick = async () => {
       const users = S.templates.flatMap(t => t.tracks).filter(tr => tr.sound === id || tr.last === id || Object.values(tr.each || {}).includes(id));
-      if (users.length && !confirm(`${soundName(id)} is used by ${users.map(u => u.name).join(", ")}. Delete it?`)) return;
+      if (users.length && !await confirmBox({title: `Delete ${soundName(id)}?`, text: `It's used by ${[...new Set(users.map(u => u.name))].join(", ")}.`, ok: "Delete", danger: true})) return;
       delete S.custom[id]; delete A.buffers[id]; await idb.del(id);
       renderSounds(); renderLanes(); renderInspector();
     };
@@ -1444,23 +1545,29 @@ function renderTemplates() {
 $("#tplSel").onchange = e => { S.cur = e.target.value; S.sel = null; S.undo = []; save(); renderAll(); if (isMaster()) flash("Room preset changed"); };
 $("#tplMenuBtn").onclick = e => { e.stopPropagation(); $("#tplMenu").classList.toggle("open"); };
 document.addEventListener("click", () => $("#tplMenu").classList.remove("open"));
-document.querySelectorAll("[data-tpl]").forEach(b => b.onclick = () => {
+document.querySelectorAll("[data-tpl]").forEach(b => b.onclick = async () => {
   const act = b.dataset.tpl, t = tpl();
+  $("#tplMenu").classList.remove("open");
   if (act === "new") {
-    const n = {id:uid(), name:"New template", length:1800, tracks:[{id:uid(), name:"Start", color:COLORS[0], sound:"meow3", last:null, first:0, every:0, count:1}]};
+    const names = new Set(S.templates.map(x => x.name));
+    let name = "New preset", k = 2;
+    while (names.has(name)) name = `New preset ${k++}`;
+    const n = {id:uid(), name, length:1800, tracks:[{id:uid(), name:"Timer 1", color:COLORS[0], sound:"meow1", last:null, first:60, every:0, count:1}]};
     S.templates.push(n); S.cur = n.id;
   } else if (act === "dup") {
     const n = JSON.parse(JSON.stringify(t)); n.id = uid(); n.name = t.name + " copy"; n.tracks.forEach(x => x.id = uid());
     S.templates.push(n); S.cur = n.id;
   } else if (act === "ren") {
-    const v = prompt("Template name", t.name); if (!v || !v.trim()) return; t.name = v.trim().slice(0, 40);
+    const v = await confirmBox({title: "Rename preset", input: {value: t.name, max: 40}, ok: "Save"});
+    if (!v || !v.trim()) return;
+    t.name = v.trim().slice(0, 40);
   } else if (act === "reset") {
     const i = S.templates.findIndex(x => x.id === "farm33");
     if (i >= 0) S.templates[i] = farm33(); else S.templates.unshift(farm33());
     S.cur = "farm33"; flash("Farm 3-3 restored");
   } else if (act === "del") {
-    if (S.templates.length === 1) { flash("Keep at least one template"); return; }
-    if (!confirm(`Delete ${t.name}?`)) return;
+    if (S.templates.length === 1) { flash("Keep at least one preset"); return; }
+    if (!await confirmBox({title: `Delete ${t.name}?`, text: "This can't be undone.", ok: "Delete", danger: true})) return;
     S.templates = S.templates.filter(x => x.id !== t.id); S.cur = S.templates[0].id;
   }
   S.sel = null; S.undo = []; save(); renderAll();
@@ -1562,7 +1669,7 @@ async function decodePreset(code) {
 async function copyLink() {
   const url = location.origin + location.pathname + "#p=" + await encodePreset(tpl());
   try { await navigator.clipboard.writeText(url); flash("Link copied"); }
-  catch (e) { prompt("Copy this link", url); }
+  catch (e) { confirmBox({title: "Copy this link", input: {value: url, readonly: true}, ok: "Done", noCancel: true}); }
 }
 $("#shareBtn").onclick = copyLink;
 
@@ -1739,6 +1846,13 @@ function onMsg(m) {
     case "chat": N.chat.push(m.line); if (N.chat.length > 80) N.chat.shift(); addChatLine(m.line, true); break;
     case "left": leftRoom(m.reason); break;
     case "error":
+      if (m.code === "nocode" && N.room && !N.pending) {
+        // our room is gone (the room server restarted)
+        const code = N.room.code, kept = keepRunLocally();
+        leftRoom(`Room ${code} closed.` + (kept ? " Your timer keeps going." : ""));
+        renderLanes(); renderInspector();
+        break;
+      }
       flash(m.msg);
       if (N.pending) { if (sessionStorage.getItem("ft.room") === N.pending) sessionStorage.removeItem("ft.room"); N.pending = null; }
       else if (m.code === "nocode") sessionStorage.removeItem("ft.room");
@@ -1779,21 +1893,34 @@ function applyRoom(room) {
   if (isGuest() || wasGuest) { renderLanes(); renderInspector(); }
   tick();
 }
-function adoptRoomPreset() {
-  // the old room master left: keep the room's preset so nothing changes for anyone
-  const rt = S.roomTpl || N.room.template;
+// use a room's preset as one of your own (an exact match you already have, or a saved copy)
+function adoptTemplate(rt) {
   const shape = t => JSON.stringify([t.name, t.length, t.tracks.map(x => [x.name, x.color, x.sound, x.first, x.every, x.count, Array.from({length: x.count}, (_, i) => soundAt(x, i))])]);
   const same = S.templates.find(x => shape(x) === shape(rt));
-  if (same) { S.cur = same.id; S.roomTpl = null; localStorage.setItem(KEY.cur, S.cur); renderTemplates(); flash("You're the Room Host now"); return; }
+  if (same) { S.cur = same.id; S.roomTpl = null; localStorage.setItem(KEY.cur, S.cur); renderTemplates(); return same.id; }
   const copy = JSON.parse(JSON.stringify(rt));
   copy.id = uid(); delete copy.names;
+  copy.tracks.forEach(x => { delete x.muted; migrateLast(x); });
   const names = new Set(S.templates.map(x => x.name));
   let name = copy.name, n = 2;
   while (names.has(name)) name = `${copy.name} (${n++})`;
   copy.name = name;
   S.templates.push(copy); S.cur = copy.id; S.roomTpl = null;
   localStorage.setItem(KEY.tpl, JSON.stringify(S.templates)); localStorage.setItem(KEY.cur, S.cur);
-  renderTemplates(); flash("You're the Room Host now");
+  renderTemplates();
+  return copy.id;
+}
+function adoptRoomPreset() {
+  // the old room master left: keep the room's preset so nothing changes for anyone
+  adoptTemplate(S.roomTpl || N.room.template);
+  flash("You're the Room Host now");
+}
+function keepRunLocally() {
+  // the room is gone in the middle of farming: keep the timer going here, as a Local run
+  if (!S.run || S.run.id !== "room") return false;
+  S.run.id = adoptTemplate(S.run.tpl);
+  localStorage.setItem(KEY.run, JSON.stringify(S.run));
+  return true;
 }
 async function startRoomRun(run) {
   cancelScheduled();
@@ -1817,24 +1944,35 @@ function leftRoom(reason) {
 }
 
 /* ---------- "are you sure?" popup ---------- */
+// o: {title, text, ok, art, danger, input: {value, max, readonly}, noCancel}
+// resolves true/false, or the typed text (null on cancel) when there's an input
 function confirmBox(o) {
   return new Promise(resolve => {
     $("#confAv").innerHTML = o.art || ""; $("#confAv").hidden = !o.art;
     $("#confTitle").textContent = o.title;
     $("#confText").textContent = o.text || ""; $("#confText").hidden = !o.text;
     $("#confYes").textContent = o.ok || "OK";
+    $("#confYes").className = "btn big " + (o.danger ? "danger" : "accent");
+    $("#confNo").hidden = !!o.noCancel;
+    const inp = $("#confIn");
+    inp.hidden = !o.input;
+    if (o.input) { inp.value = o.input.value || ""; inp.maxLength = o.input.max || 300; inp.readOnly = !!o.input.readonly; }
     const m = $("#confirmModal");
-    const done = v => { m.classList.remove("show"); document.removeEventListener("keydown", key, true); resolve(v); };
+    const done = ok => {
+      m.classList.remove("show"); document.removeEventListener("keydown", key, true);
+      resolve(o.input ? (ok ? inp.value : null) : ok);
+    };
     const key = e => {
       if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); }
       if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); done(true); }
+      if (e.key !== "Escape" && e.key !== "Enter") e.stopPropagation();   // typing stays in the box
     };
     $("#confYes").onclick = () => done(true);
     $("#confNo").onclick = () => done(false);
     m.onclick = e => { if (e.target === m) done(false); };
     document.addEventListener("keydown", key, true);
     m.classList.add("show");
-    $("#confYes").focus();
+    if (o.input) { inp.focus(); inp.select(); } else $("#confYes").focus();
   });
 }
 
@@ -1859,11 +1997,11 @@ function showEnd(info) {
     const full = !isMuted(tr.id) && played === mine.length;
     return `<div class="st" style="--c:${tr.color}"><span class="dot"></span><span class="nm">${esc(tr.name)}</span><span class="v ${full ? "full" : ""}">${val}</span></div>`;
   }).join("");
-  const again = isMaster() ? `<button class="btn big accent" id="endAgain">${ICON.restart}Run again</button>` : "";
+  const again = (info.local || isMaster()) ? `<button class="btn big accent" id="endAgain">${ICON.restart}Run again</button>` : "";
   $("#endBtns").innerHTML = again + `<button class="btn big ${again ? "ghost" : "accent"}" id="endOk">${again ? "Close" : "OK"}</button>`;
   $("#endModal").classList.add("show");
   $("#endOk").onclick = hideEnd;
-  if (again) $("#endAgain").onclick = () => { hideEnd(); ensureAudio(); send({t: "start"}); };
+  if (again) $("#endAgain").onclick = () => { hideEnd(); ensureAudio(); if (info.local) start(); else send({t: "start"}); };
   $("#endOk").focus();
 }
 function hideEnd() { $("#endModal").classList.remove("show"); }
@@ -1933,13 +2071,42 @@ function renderLobby() {
   $("#modeBadge").hidden = inRoom();
   if (show) { $("#cTitle").placeholder = tpl().name; renderRoomList(); }
 }
+// what a room is doing right now, for the room list
+function roomStatus(r) {
+  const now = Date.now() + N.offset;
+  if (r.run) return now < r.run.start_at ? ["starting", "Starting"] : ["live", "Currently Farming"];
+  if (r.check) return ["check", "Ready Check"];
+  if (r.ended && now - r.ended.at < 120000) return r.ended.reason === "done" ? ["done", "Just Finished"] : ["stopped", "Just Stopped"];
+  return ["idle", "Waiting"];
+}
 function roomCard(r) {
   const seats = Array.from({length: r.max}, (_, i) => `<i class="${i < r.count ? "f" : ""}"></i>`).join("");
   const full = r.count >= r.max;
-  const badge = r.run ? `<span class="badge live" data-end="${r.run.start_at + r.run.length * 1000}"></span>` : `<span class="badge">${esc(r.preset)}</span>`;
-  return `<div class="roomcard"><div class="tt">${esc(r.title)}</div>${r.desc ? `<div class="ds">${esc(r.desc)}</div>` : ""}
-    <div class="bt"><span class="seats">${seats}</span>${badge}<span class="spacer"></span>
-    <button class="btn ${full ? "" : "accent"}" data-join="${r.code}" ${full ? "disabled" : ""}>${full ? "Full" : "Join"}</button></div></div>`;
+  const [cls, label] = roomStatus(r);
+  return `<div class="roomcard" data-code="${esc(r.code)}">
+    <div class="rc-top"><div class="tt">${esc(r.title)}</div><span class="rstat s-${cls}">${label}</span></div>
+    ${r.desc ? `<div class="ds">${esc(r.desc)}</div>` : ""}
+    <div class="rc-meta"><span class="pn">${esc(r.preset || "Preset")} \u00b7 ${fmt(r.length || 0)}</span><span class="rc-time"></span></div>
+    <div class="bt"><span class="seats">${seats}</span><span class="rc-count">${r.count}/${r.max}</span><span class="spacer"></span>
+    <button class="btn ${full ? "" : "accent"}" data-join="${r.code}" ${full ? "disabled" : ""}>${full ? "Full" : "Join"}</button></div>
+    ${r.run ? `<div class="rc-bar"><i></i></div>` : ""}</div>`;
+}
+// keep the room list status, time left and progress bar moving
+function updateRoomCards() {
+  const list = N.lobby || [];
+  document.querySelectorAll(".roomcard[data-code]").forEach(card => {
+    const r = list.find(x => x.code === card.dataset.code);
+    if (!r) return;
+    const [cls, label] = roomStatus(r);
+    const pill = card.querySelector(".rstat");
+    if (pill.textContent !== label) { pill.className = "rstat s-" + cls; pill.textContent = label; }
+    const timeEl = card.querySelector(".rc-time"), bar = card.querySelector(".rc-bar i");
+    if (r.run) {
+      const now = Date.now() + N.offset, el = (now - r.run.start_at) / 1000;
+      timeEl.textContent = el < 0 ? `in ${Math.ceil(-el)}` : `${cd(r.run.length - el)} left`;
+      if (bar) bar.style.width = Math.max(0, Math.min(100, el / r.run.length * 100)) + "%";
+    } else timeEl.textContent = "";
+  });
 }
 function renderRoomList() {
   const box = $("#roomList");
@@ -1968,6 +2135,11 @@ $("#lobbyBtn").onclick = () => {
 };
 $("#lobbyClose").onclick = () => { S.showLobby = false; renderLobby(); };
 $("#newRoomBtn").onclick = () => { const f = $("#createForm"); f.classList.toggle("show"); if (f.classList.contains("show")) $("#cTitle").focus(); };
+// Enter in the title or description creates the room, Escape closes the form
+["#cTitle", "#cDesc"].forEach(sel => $(sel).addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); $("#cGo").click(); }
+  if (e.key === "Escape") { e.stopPropagation(); $("#createForm").classList.remove("show"); }
+}));
 $("#cGo").onclick = () => {
   if (N.state !== "on") { flash("Not connected to the room server yet"); connect(); return; }
   send({t: "create", title: $("#cTitle").value || $("#cTitle").placeholder, desc: $("#cDesc").value, public: segValue($("#cVis")), template: templatePayload(tpl())});
@@ -2047,7 +2219,7 @@ function renderRoomActions() {
 }
 async function copyInvite() {
   try { await navigator.clipboard.writeText(inviteLink()); flash("Invite link copied"); }
-  catch (e) { prompt("Copy this invite link", inviteLink()); }
+  catch (e) { confirmBox({title: "Copy this invite link", input: {value: inviteLink(), readonly: true}, ok: "Done", noCancel: true}); }
 }
 $("#rCode").onclick = copyInvite;
 $("#rLeave").onclick = () => send({t: "leave"});
@@ -2056,6 +2228,10 @@ $("#rEdit").onclick = () => {
   f.classList.toggle("show");
   if (f.classList.contains("show")) { $("#eTitle").value = r.title; $("#eDesc").value = r.desc; setSeg($("#eVis"), r.public); $("#eTitle").focus(); }
 };
+["#eTitle", "#eDesc"].forEach(sel => $(sel).addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); $("#eGo").click(); }
+  if (e.key === "Escape") { e.stopPropagation(); $("#rForm").classList.remove("show"); }
+}));
 $("#eGo").onclick = () => {
   send({t: "settings", title: $("#eTitle").value, desc: $("#eDesc").value, public: segValue($("#eVis"))});
   $("#rForm").classList.remove("show");
@@ -2099,6 +2275,7 @@ function addChatLine(l, scroll) {
   if (l.sys) { div.className = "sys" + (["good", "bad", "warn"].includes(l.tone) ? " " + l.tone : ""); div.innerHTML = sysLineHTML(l); }
   else div.innerHTML = `${nameHTML(l.name, l.color, l.cid, true)} ${esc(l.text)}`;
   log.appendChild(div);
+  while (log.children.length > 80) log.firstElementChild.remove();   // long sessions stay light
   if (!scroll || near) log.scrollTop = log.scrollHeight;
 }
 $("#chatForm").onsubmit = e => {
