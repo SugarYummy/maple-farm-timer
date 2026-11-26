@@ -100,14 +100,21 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .lhead .nm{cursor:text;border-radius:4px;padding:0 3px;margin:0 -3px}
 .lhead .nm:hover{background:color-mix(in oklab,var(--c) 18%,transparent)}
 .lhead .nmin{width:100%;font-weight:600;background:var(--surface);border:1px solid var(--accent);border-radius:5px;padding:1px 5px;outline:none}
-.mute{background:transparent;border:0;color:var(--muted);padding:4px;border-radius:6px;display:flex;opacity:0;transition:opacity .15s}
+.mute{background:transparent;border:0;color:var(--muted);padding:4px;border-radius:6px;display:flex;opacity:0;transition:opacity .15s;position:relative;z-index:9}
+.farmlock .mute{opacity:.8}
 .lane:hover .mute,.mute.on{opacity:1}
 .mute:hover{color:var(--fg);background:var(--surface)}
 .mute.on{color:var(--bad)}
 .mute svg{width:16px;height:16px}
 .lane.muted .ltrack{opacity:.4}
 .lane.muted .lhead .nm{text-decoration:line-through;text-decoration-color:var(--muted)}
-.next.muted{opacity:.5}
+.next.muted .cd,.next.muted .nm{opacity:.55}
+.nmute{position:absolute;right:6px;bottom:6px;width:28px;height:28px;padding:5px;border:0;border-radius:7px;background:transparent;color:var(--muted);display:flex;opacity:0;transition:opacity .15s}
+.next:hover .nmute,.nmute.on{opacity:1}
+.nmute:hover{background:var(--surface);color:var(--fg)}
+.nmute.on{color:var(--bad)}
+.nmute svg{width:18px;height:18px}
+@media (hover:none){.nmute{opacity:.6}}
 .pillin,.endin{position:absolute;z-index:6;font:700 12.5px var(--body);text-align:center;background:var(--surface);border:1.5px solid var(--accent);border-radius:999px;outline:none;color:var(--fg);padding:2px 6px}
 .pillin{top:50%;transform:translate(10px,-50%);width:64px}
 .endin{top:0;transform:translateX(-50%);width:84px;border-radius:6px}
@@ -139,7 +146,7 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .lockpill svg{width:16px;height:16px;color:var(--accent)}
 .add{margin-top:10px;width:100%;border-style:dashed;background:transparent;color:var(--muted)}
 .add:hover{color:var(--fg)}
-.tip{position:fixed;z-index:50;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12.5px;font-weight:600;padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-130%);display:none;font-variant-numeric:tabular-nums}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--raise);color:var(--fg);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.35);font-size:12.5px;font-weight:600;padding:4px 9px;border-radius:7px;white-space:nowrap;transform:translate(-50%,-130%);display:none;font-variant-numeric:tabular-nums}
 .tip.show{display:block}
 
 /* inspector */
@@ -164,6 +171,10 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .with .sel{flex:1}
 
 /* sounds */
+.snd-head{gap:14px}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.chk input{accent-color:var(--accent);width:16px;height:16px}
+.chk .sel{padding:4px 8px;font-size:13px}
 .sounds{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:12px}
 .snd{display:flex;align-items:center;gap:8px;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:8px}
 .snd .nm{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;outline:none;border-radius:4px;padding:1px 3px}
@@ -258,7 +269,7 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .seat.open:hover{border-color:var(--accent);color:var(--accent)}
 .seat .nm{font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seat .you{font-size:11px;font-weight:600;color:var(--muted);margin-left:4px}
-.crown{color:#f0b93a;width:24px;height:24px;flex:none;display:inline-flex;cursor:help;filter:drop-shadow(0 0 6px rgba(240,185,58,.45))}
+.crown{color:#f0b93a;width:24px;height:24px;flex:none;display:inline-flex;cursor:default;filter:drop-shadow(0 0 6px rgba(240,185,58,.45))}
 .crown svg{width:100%;height:100%}
 .rstate{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--surface);color:var(--muted);border:1px solid var(--line);flex:none}
 .rstate.ok{background:var(--good);color:#0b1912;border-color:var(--good)}
@@ -274,6 +285,11 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .chatin .inp{flex:1}
 .rdy{width:min(380px,100%);text-align:center}
 .rdy .seatlist{margin:14px 0}
+.rdytime{display:flex;align-items:center;gap:10px;margin-top:6px}
+.rdybar{flex:1;height:6px;border-radius:999px;background:var(--sunk);overflow:hidden}
+.rdybar i{display:block;height:100%;width:100%;background:var(--accent);border-radius:999px;transition:width .25s linear}
+.rdybar i.low{background:var(--bad)}
+#rdyLeft{font-variant-numeric:tabular-nums;font-weight:700;font-size:13px;color:var(--muted);min-width:28px;text-align:right}
 .count{font-family:var(--display);font-weight:700;font-size:96px;line-height:1;color:var(--accent);margin:14px 0 4px}
 .endd{text-align:center;width:min(400px,100%)}
 .endd .row{justify-content:center}
@@ -382,7 +398,11 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
   </section>
 
   <section class="panel">
-    <h2>Sounds</h2>
+    <div class="row snd-head">
+      <h2>Sounds</h2><span class="spacer"></span>
+      <label class="chk"><input type="checkbox" id="uiOn"> Interface sounds</label>
+      <label class="chk">Countdown <select class="sel" id="cdSel" aria-label="Countdown sound"></select></label>
+    </div>
     <div class="sounds" id="sounds"></div>
   </section>
   </div>
@@ -420,6 +440,7 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
   <div class="dialog rdy" role="dialog" aria-modal="true" aria-labelledby="rdyTitle">
     <h3 id="rdyTitle">Ready check</h3>
     <div class="count" id="rdyCount" hidden></div>
+    <div class="rdytime" id="rdyTime"><span class="rdybar"><i id="rdyBar"></i></span><span id="rdyLeft"></span></div>
     <div class="seatlist" id="rdySeats"></div>
     <div class="row" style="justify-content:center" id="rdyBtns"></div>
   </div>
@@ -474,13 +495,21 @@ function farm33() {
 }
 
 /* ---------- state ---------- */
-const S = {templates:[], cur:null, sel:null, custom:{}, run:null, vol:0.9, undo:[], frozenScale:null};
+const S = {templates:[], cur:null, sel:null, custom:{}, run:null, vol:0.9, undo:[], frozenScale:null, mutes:new Set()};
+const isMuted = id => S.mutes.has(id);
+function saveMutes() { localStorage.setItem("ft.mutes", JSON.stringify([...S.mutes])); }
 function load() {
   try { S.templates = JSON.parse(localStorage.getItem(KEY.tpl)) || []; } catch (e) { S.templates = []; }
   if (!S.templates.length) S.templates = [farm33()];
   S.cur = localStorage.getItem(KEY.cur);
   if (!S.templates.some(t => t.id === S.cur)) S.cur = S.templates[0].id;
   const v = parseFloat(localStorage.getItem(KEY.vol)); if (!isNaN(v)) S.vol = v;
+  S.uiOn = localStorage.getItem("ft.ui") !== "0";
+  S.countdown = localStorage.getItem("ft.countdown") || "beeps";
+  try { S.mutes = new Set(JSON.parse(localStorage.getItem("ft.mutes")) || []); } catch (e) { S.mutes = new Set(); }
+  // older versions saved mute inside the preset: move it to this browser's own list
+  S.templates.forEach(t => t.tracks.forEach(tr => { if (tr.muted) S.mutes.add(tr.id); delete tr.muted; }));
+  saveMutes();
   try { S.run = JSON.parse(localStorage.getItem(KEY.run)); } catch (e) { S.run = null; }
   document.documentElement.dataset.theme = localStorage.getItem(KEY.theme) || "dark";
 }
@@ -524,7 +553,7 @@ function events(t) {
     for (let i = 0; i < tr.count; i++) {
       const at = tr.first + i * (tr.every || 0);
       const sound = (i === tr.count - 1 && tr.last && tr.count > 1) ? tr.last : tr.sound;
-      out.push({at, sound, tr, n:i + 1, cut: at >= t.length, muted: !!tr.muted});
+      out.push({at, sound, tr, n:i + 1, cut: at >= t.length, muted: isMuted(tr.id)});
       if (!tr.every) break;
     }
   });
@@ -561,7 +590,100 @@ const idb = {
 };
 
 /* ---------- audio ---------- */
-const A = {ctx:null, gain:null, buffers:{}, sources:[], preview:null};
+const A = {ctx:null, gain:null, buffers:{}, sources:[], preview:null, ui:{}, cd:[]};
+const UI_SOUNDS = {"ready": "data:audio/mpeg;base64,//MwxAANQU2nj0MYANyAC77AAAM0RN3RzgAIV33OIm77nETDizc4iUOBv9d9EL//0c0RN3jnETd4BmCEn//vKOJ/Eo+Gw1HoQARJwH8J//MwxAwSAP7CTYl4AMGf6DYSEX4reuRf+RWMjAtsv/jao9tb/+lepPMuov//TioBPoXvIyBNocHl3viG3/n//ugSlZKK//T/K/tayqRw//MwxAURAPqyYY/AAI8gAHSlmU+k65r4taG5htz11PGdOOU9TXKa1SSGX6v/Mb+5nb/KtKv/WP/rVYhMT8ne8TnRlpsbpAMnlRnKPwB0//MwxAINAO6Xj8OgAKkAAAYSjycahtUJbYphqe3qUq6P7dSTO6S1l0Y0cQGoAgZ0AJ2N0Q0z//////1GUoFPrAADHHojcfsfCHYzVKc+//MwxA8MwPp/NEi2XFZ5JGe35tpiCD8tYX4QWBMw3YS8dmGuX7vscM6///R//9dkxwBm4QAABjExyK1fduDzDhEEiZPY8m+evIA3z9VW//MwxB0MwPKHjkhyeIzEgPORivNLb/AIR//////5WMNGkCMANuAAAIMN0x/OYHRLZpX4bRO5wv8+vCeE1I+dzpIfZ4BNbY622d9irf/+//MwxCsMwOqHhjD0XK//9sYD45JDt112/QAF2Mm42p2kTqC0LUtvN3J8C60Ohlkunp5XIKythgsQBAAaFoIHMo////rabC/v6LdhsHwf//MwxDkPgL7jtkYNAj7648U///crAACdyEv8+wE03q5ipz5bV/V1NmetcPhhDevmQRlyrf+igSLf//+j/6hCCov+oDA0DSlB3wE4bgAA//MwxDwNwObHjjPPBhOMwy3hbjlqdLTaGdi7MraNho180dkEzbcEdx/f1sguHX7ax/////+s9ZrCwvWmKQUrUAAABhLjMmz7H5wjV7nf//MwxEYNQOqXrhi05C75Qbok5TKFEz6BmoyxuNnL+6lcsBBVe+FaP/r///6P7XjQCv8Al38AABcJBjVaSbH1mC1iDqfZH17ldshxTNNx//MwxFINgOaLjhh1AMa//ddxmQsKZtVYz////+us5ttAg572FmJ/C1/AAALCaLBsXYyeNT+/jlChpKbvU92szEzEhjvsls9/D5iVlskz//MwxF0NgOaPrhh0kDNzP/1f//8j9bEgOk4nARdjgAAAuPIHzjVpIqU6lmanQQui6FlvQe37usSwAVKVDAbXdnTBCFHCr9FZcT5Kypc2//MwxGgNQOaHhhh1AI8Cu4AABMMJGJ7/nxlulEMjZzyYlryp9l3YbmZPk/xqGH8z1dpUuHOd/////6VBfzCKCYAFgT8JIAA5KQS0gzbx//MwxHQNAhKPtqAFbMnNtJFiFkXuqlmV2rfOXZMa63AlRf+f/q/hXEZqKNkUM////+WcID1ZJYofqT8CYsAAHIOLm1F/BAEaCrAeWA6l//MwxIENgOKDhjCyrE7PlrUFG3lYzgTv//3JpCe1EOf//8ssWsJLd3EixQL680qaSkr/BHdAA/EgpJqSjrOlWrh6BGx3hR2v+3fOePvA//MwxIwOAOJ3XHj0PG5a5tSB/7zus+BYGX4f//9J8ATQQDJNvU2Gt9qnzyCHAk+AACWjgiPxjvW1mGwmHTtIZ8wrP3YV4DrQkjpIP3WY//MwxJUOQOJ/hkhyPIY8PQS///7DrAuaaWXz7DzgWJNC1wHIrGRQfwX5IAALdQ+jechW9qjArcjfZK9R7f+RQBZF5Tt9y8//+oWOiuxG//MwxJ0OwOZ7hEjyWC71uYkgaeLoJtQbFEGViJTljKDPAm71NxthY/gVJyMTr3UwzlxvpUSwLCUKsFQEE3ZXUJSdOVio1xUySCosFAqE//MwxKMPAOJ7hkhmWITFn/EpCoK5Z8Q5EieriZUCdDuHrLweaURx0nMikmrAtCzLQJlnFDBQYR0sscyn7KCBOGYqzKgyLH4sLulgkKnP//MwxKgOgN53jkjaGO3UL/1s/gsLkf////////////////////////////////////////////////////////////////////////////MwxK8PQIJzhkhGBv////////////////////////////////////////////////////////////////////////////////////////MwxLMOgL3bIHmGZP//////////////////////////////////////////////////////////////////////////////////////", "hover": "data:audio/mpeg;base64,//MwxAAM6Un3N0YYAQrvoAARh5MnRAg5BA8mTogQyIe78R0Ku8RNCrvETQqBvAgASFXeAAASE7mgAmnXOIiC0ngAh8JFAgBgAc69zBMY//MwxA0SQbLQdZgoAJYWEV2SmFizv+D72suKmZPh0WKIGTxUfKpWL8SFBRGVkDy/7zowI2qOJf8B3RZOHnhMTFAXd/+o5W0yn3cACopl//MwxAURAW7efY8QADEq6UKAACAACzbhX+GCRWBommrTY1PPBZKyod94CLVSBRIXlEB0nUtnMwpq/vQFGqb//+owOezw5Ry2/6jTl5UA//MwxAINwD7T58YAAAAAVou21n+d69a1JCRqYp+lFoNCEs1glAT6BYaLhQjESQ01SL/grcd1R3/phQDA0eg0s7Dv/mAE1121ujHqUZiX//MwxAwNwPKrthmGgNgYBCSLMepfFjMzep1fqqrN//+1ASCoTBUFfBUYHFjOt08/oW764l/VVEtWWWOg5IiKEgQsQTGDSQKKAxB5BNaN//MwxBYMQHlbIBmMQAsJAcOcAhUVFQyBRUVFf/////4qKiqQKKior///////////////////////////////////////////////////", "stop": "data:audio/mpeg;base64,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wRqPLlPEUktI9E337LtuJLjQPp6DE9tDr+dOlrFdSh52t+ZO06J+/iXeb1r7oi2Z1VEU/nPsJBhENUl/wAJctrnWP/6GEelq//MwxL0OQj6XVlAFo5UQJXmoXn/k+U1QShknfhH/Mn8YzdW9E3nkqtDiy6uhq1+/xkvggqvx75eSbG8n1vWrO/fqp9iAAtuW2tn/5N9S//MwxMUOwUaHJmrEcixQo2cXuik9Y20DJsfLJxx/5ifzPLQTuljC080yzoMNIeErPYDDoeK6tIZW4PkyKqkioywson/AABk5Lcaz/4NS//MwxMsPQjqThhMKKoRcHEMObFdRrUaD9D/ewptX1Fl6ZWn5GJr78bdCZJT6oZ/iQwk41NjBEkmFbxV6qZRIsEzAiC8ApuOpPAgyuK2g//MwxM8QqU6DdnpKc1+8OZaTuICo1rENlm8oTFpnxE2pyp776jZ/dG6sRim4p1tfyiDsKrlJYlbKQyQI6g7DQfBgU8AAGKcloIhfaMqe//MwxM0QQUp/dnnGfqBCS1A9S7hQjRAdqN1F7rq0h135G9H+QU75qimNsaEm8r4ppvTp7//XmQySmrebhIf/3IeldD+CLTctX7gCFrIB//MwxM0QQWqHhkCGmuwVmGcnsuGG8odNn5f9x3KZjsHEOCbvVcwm797656Wf/1//vW78vjyqrNOejlwU47Fh+QwbP3qAAkm5IlPEY8bo//MwxM0QARZnJgvONgoUCLit6cQNRQwsf+d+ueXS7ygcfnB7fDMR1XPnVcIZdUaciuQNieGloFC0RLMNBoZ50DGUKIi/5AQJNy2vKfWe//MwxM4QgRp7hhJKKyo/C8AHFZdAQ2oG9ft/WX+JKk3VmfikAO3/2gv/J5Df99uSpib4k0PplXxPqG0X3+e2P1crOCnNvNbkk8baDFeF//MwxM0QORp3VioEU1pFbuXnwyEO9hFWR/JmbToarJ5GU4ZEqRrnoPCrx5Za8V58AkRYiXFYGQom5buSjg042cLyXzeFanM0ShHSGcLU//MwxM0QgUpzXlHGdiuklJ8cR+u4sqGpglyRQmAAVUSXOFhIkaS3G2Wg65au5EsJZI42fpJ7ev8qbN7///////////////////////////MwxMwPqRZ/hkCGf/////////////////////////////////////////////////////////////////////////////////////////MwxM4QQOZfJgsULP////////////////////////////////////////////////////////////////////////////////////////MwxM4OOOonIBPMNf//////////////////////////////////////////////////////////////////////////////////////"};
+const UI_VOL = {ready: 0.8, hover: 0.35, stop: 0.8};
+
+/* ---------- interface sounds (ready popup, hover, stop, countdown) ---------- */
+function tone(when, freq, dur, vol, list) {
+  const o = A.ctx.createOscillator(), g = A.ctx.createGain();
+  o.type = "sine"; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, when);
+  g.gain.linearRampToValueAtTime(vol, when + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  o.connect(g); g.connect(A.gain); o.start(when); o.stop(when + dur + 0.05);
+  if (list) list.push(o);
+}
+async function uiBuffer(name) {
+  if (A.ui[name] !== undefined) return A.ui[name];
+  A.ui[name] = null;
+  if (!UI_SOUNDS[name]) return null;
+  try { A.ui[name] = await A.ctx.decodeAudioData(await (await fetch(UI_SOUNDS[name])).arrayBuffer()); } catch (e) { A.ui[name] = null; }
+  return A.ui[name];
+}
+async function uiSound(name) {
+  if (!S.uiOn || !A.ctx || A.ctx.state !== "running") return;
+  const b = await uiBuffer(name), now = A.ctx.currentTime;
+  if (b) {
+    const src = A.ctx.createBufferSource(), g = A.ctx.createGain();
+    g.gain.value = UI_VOL[name] || 0.6; src.buffer = b; src.connect(g); g.connect(A.gain); src.start();
+    return;
+  }
+  // built-in fallbacks
+  if (name === "hover") tone(now, 1400, 0.04, 0.05);
+  if (name === "ready") { tone(now, 660, 0.16, 0.18); tone(now + 0.12, 990, 0.22, 0.18); }
+  if (name === "stop") { tone(now, 520, 0.18, 0.18); tone(now + 0.14, 330, 0.3, 0.18); }
+}
+const CD_CLIP = "clip";
+A.cdBytes = null;
+async function loadCountdownClip() {
+  for (const name of ["Countdown.mp3", "countdown.mp3"]) {
+    try {
+      const r = await fetch(name, {cache: "no-cache"});
+      if (r.ok && (r.headers.get("content-type") || "").indexOf("html") < 0) { A.cdBytes = await r.arrayBuffer(); break; }
+    } catch (e) {}
+  }
+  if (A.cdBytes && !localStorage.getItem("ft.countdown")) S.countdown = CD_CLIP;
+  renderSoundSettings();
+}
+async function countdownClip() {
+  if (A.cdClip !== undefined) return A.cdClip;
+  A.cdClip = null;
+  if (A.cdBytes) { try { A.cdClip = await A.ctx.decodeAudioData(A.cdBytes.slice(0)); } catch (e) { A.cdClip = null; } }
+  return A.cdClip;
+}
+function cancelCountdown() { A.cd.forEach(n => { try { n.stop(); } catch (e) {} }); A.cd = []; }
+async function scheduleCountdown(startLocalMs) {
+  cancelCountdown();
+  if (S.countdown === "off" || !A.ctx || A.ctx.state !== "running") return;
+  const lead = (startLocalMs - Date.now()) / 1000, base = A.ctx.currentTime;
+  if (lead <= 0.2) return;
+  if (S.countdown === CD_CLIP) {
+    const clip = await countdownClip();
+    if (clip) {
+      const src = A.ctx.createBufferSource(); src.buffer = clip; src.connect(A.gain);
+      const at = lead - clip.duration;
+      if (at >= 0) src.start(base + at); else src.start(base, Math.min(clip.duration, -at));
+      A.cd.push(src);
+      return;
+    }
+  }
+  if (S.countdown === "beeps" || S.countdown === CD_CLIP || !hasSound(S.countdown)) {
+    // the "3" can arrive a moment late over the network, so still play it if it's only a little late
+    [3, 2, 1].forEach(k => { const at = lead - k; if (at > -0.5) tone(base + Math.max(0, at), 880, 0.14, 0.22, A.cd); });
+    tone(base + lead, 1320, 0.4, 0.2, A.cd);
+    return;
+  }
+  // a custom countdown clip ends right when the timer starts
+  const b = await buffer(S.countdown); if (!b) return;
+  const src = A.ctx.createBufferSource(); src.buffer = b; src.connect(A.gain);
+  const at = lead - b.duration;
+  if (at >= 0) src.start(base + at); else src.start(base, Math.min(b.duration, -at));
+  A.cd.push(src);
+}
+let hoverEl = null, hoverAt = 0;
+const HOVERABLE = 'button:not(:disabled), select:not(:disabled), .mk:not(.cut), .cnt, .grip, .endh, .roomcard, .lhead .nm, .seat.open';
+document.addEventListener("pointerover", e => {
+  if (e.pointerType !== "mouse" || S.dragging || document.body.classList.contains("reordering")) return;
+  const el = e.target.closest && e.target.closest(HOVERABLE);
+  if (!el || el === hoverEl) return;
+  hoverEl = el;
+  const now = performance.now(); if (now - hoverAt < 70) return;
+  hoverAt = now; uiSound("hover");
+});
+document.addEventListener("pointerout", e => { if (hoverEl && !(e.relatedTarget && hoverEl.contains(e.relatedTarget))) hoverEl = null; });
+// browsers only allow sound after a click, so wake audio on the first one
+document.addEventListener("pointerdown", () => { if (!A.ctx || A.ctx.state !== "running") ensureAudio(); }, true);
 async function ensureAudio() {
   if (!A.ctx) {
     A.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -623,7 +745,7 @@ async function start() {
   renderControls(); tick();
 }
 function stopLocal() {
-  cancelScheduled();
+  cancelScheduled(); cancelCountdown();
   if (S.run && S.run.id !== "room") localStorage.removeItem(KEY.run);
   S.run = null;
   hideReady();
@@ -667,7 +789,8 @@ function tick() {
   const box = $("#nexts");
   if (box.childElementCount !== t.tracks.length || box.dataset.tid !== t.tracks.map(x => x.id).join()) {
     box.dataset.tid = t.tracks.map(x => x.id).join();
-    box.innerHTML = t.tracks.map(tr => `<div class="next" data-id="${tr.id}" style="--c:${tr.color}"><div class="nm"></div><div class="cd"></div><div class="ct"></div></div>`).join("");
+    box.innerHTML = t.tracks.map(tr => `<div class="next" data-id="${tr.id}" style="--c:${tr.color}"><div class="nm"></div><div class="cd"></div><div class="ct"></div><button class="nmute" data-m="" aria-label="Mute ${esc(tr.name)}"></button></div>`).join("");
+    box.querySelectorAll(".nmute").forEach(b => b.onclick = () => toggleMute(b.parentElement.dataset.id));
   }
   let soonest = null;
   t.tracks.forEach(tr => {
@@ -675,9 +798,16 @@ function tick() {
     const nx = run ? mine.find(e => e.at >= el - 0.3) : mine[0];
     const card = box.querySelector(`[data-id="${tr.id}"]`);
     card.querySelector(".nm").textContent = tr.name;
-    card.classList.toggle("done", !nx && !tr.muted);
-    card.classList.toggle("muted", !!tr.muted);
-    if (tr.muted) {
+    const mu = isMuted(tr.id);
+    card.classList.toggle("done", !nx && !mu);
+    card.classList.toggle("muted", mu);
+    const mb = card.querySelector(".nmute");
+    if (mb.dataset.m !== String(mu)) {
+      mb.dataset.m = String(mu); mb.classList.toggle("on", mu);
+      mb.innerHTML = mu ? ICON.muted : ICON.vol;
+      mb.title = mu ? "Unmute (just for you)" : "Mute (just for you)";
+    }
+    if (mu) {
       card.querySelector(".cd").innerHTML = `<span style="font-size:15px;color:var(--muted)">muted</span>`;
       card.querySelector(".ct").textContent = "";
     } else if (!nx) {
@@ -690,6 +820,8 @@ function tick() {
     }
   });
   box.querySelectorAll(".next").forEach(c => c.classList.toggle("soon", !!(soonest && c.dataset.id === soonest.tr.id && soonest.at - el <= 10)));
+
+  readyTimer();
 
   // live countdowns on lobby room cards
   document.querySelectorAll("[data-end]").forEach(b => { b.textContent = "farming \u00b7 " + cd((+b.dataset.end - Date.now() - N.offset) / 1000) + " left"; });
@@ -767,8 +899,8 @@ function laneSummary(tr) {
 function renderLanes() {
   const t = tpl();
   $("#lanes").innerHTML = t.tracks.map(tr => `
-    <div class="lane ${S.sel === tr.id ? "sel" : ""} ${tr.muted ? "muted" : ""}" data-id="${tr.id}" style="--c:${tr.color}">
-      <div class="lhead" style="--c:${tr.color}" data-act="select">${isGuest() ? "" : `<span class="grip" title="Drag to reorder">${ICON.grip}</span>`}<span class="dot"></span><div class="tx"><div class="nm" title="${isGuest() ? "" : "Click to rename"}">${esc(tr.name)}</div><div class="sm">${esc(laneSummary(tr))}</div></div>${isGuest() ? "" : `<button class="mute ${tr.muted ? "on" : ""}" title="${tr.muted ? "Unmute" : "Mute"}" aria-label="${tr.muted ? "Unmute" : "Mute"} ${esc(tr.name)}">${tr.muted ? ICON.muted : ICON.vol}</button>`}</div>
+    <div class="lane ${S.sel === tr.id ? "sel" : ""} ${isMuted(tr.id) ? "muted" : ""}" data-id="${tr.id}" style="--c:${tr.color}">
+      <div class="lhead" style="--c:${tr.color}" data-act="select">${isGuest() ? "" : `<span class="grip" title="Drag to reorder">${ICON.grip}</span>`}<span class="dot"></span><div class="tx"><div class="nm" title="${isGuest() ? "" : "Click to rename"}">${esc(tr.name)}</div><div class="sm">${esc(laneSummary(tr))}</div></div><button class="mute ${isMuted(tr.id) ? "on" : ""}" title="${isMuted(tr.id) ? "Unmute (just for you)" : "Mute (just for you)"}" aria-label="${isMuted(tr.id) ? "Unmute" : "Mute"} ${esc(tr.name)}">${isMuted(tr.id) ? ICON.muted : ICON.vol}</button></div>
       <div class="ltrack" data-id="${tr.id}"><div class="rail"></div>${markersHTML(tr)}</div>
     </div>`).join("");
   document.querySelectorAll(".ltrack").forEach(el => el.onpointerdown = e => dragLane(e, el));
@@ -790,7 +922,7 @@ function markersHTML(tr) {
   let h = "", lastAt = 0;
   for (let i = 0; i < tr.count; i++) {
     const at = tr.first + i * (tr.every || 0);
-    const cls = ["mk", tr.muted ? "mutedmk" : "", i === 0 ? "first" : "", i === tr.count - 1 && tr.count > 1 ? "last" : "", at >= t.length ? "cut" : ""].join(" ");
+    const cls = ["mk", isMuted(tr.id) ? "mutedmk" : "", i === 0 ? "first" : "", i === tr.count - 1 && tr.count > 1 ? "last" : "", at >= t.length ? "cut" : ""].join(" ");
     const snd = (i === tr.count - 1 && tr.last && tr.count > 1) ? tr.last : tr.sound;
     h += `<div class="${cls}" data-i="${i}" data-at="${at}" data-tid="${tr.id}" style="left:${pct(at)}" data-tip="${esc(tr.name)}${tr.count > 1 ? " " + (i + 1) : ""} \u00b7 ${fmt(at, true)} \u00b7 ${esc(soundName(snd))}"></div>`;
     lastAt = at;
@@ -905,13 +1037,13 @@ function dragEnd(e) {
 }
 
 document.addEventListener("pointerover", e => {
-  const m = e.target.closest && e.target.closest(".mk");
+  const m = e.target.closest && e.target.closest("[data-tip]");
   if (m && !S.dragging) {
     const r = m.getBoundingClientRect();
     showTip(r.left + r.width / 2, r.top, m.dataset.tip);
   }
 });
-document.addEventListener("pointerout", e => { if (!S.dragging && e.target.closest && e.target.closest(".mk")) hideTip(); });
+document.addEventListener("pointerout", e => { if (!S.dragging && e.target.closest && e.target.closest("[data-tip]")) hideTip(); });
 
 /* ---------- lane tools: rename, reorder, mute, type-in boxes ---------- */
 function editTpl(label, fn) {
@@ -937,8 +1069,13 @@ function renameLane(id, nmEl) {
   inp.onblur = () => finish(true);
 }
 function toggleMute(id) {
-  const tr = track(id); if (!tr) return;
-  editTpl(tr.muted ? `${tr.name} unmuted` : `${tr.name} muted`, () => { tr.muted = !tr.muted; });
+  const t = S.run ? S.run.tpl : tpl();
+  const tr = t.tracks.find(x => x.id === id) || track(id); if (!tr) return;
+  if (S.mutes.has(id)) S.mutes.delete(id); else S.mutes.add(id);
+  saveMutes();
+  renderLanes(); tick();
+  if (S.run && A.ctx && A.ctx.state === "running") schedule();
+  flash(isMuted(id) ? `${tr.name} muted for you` : `${tr.name} unmuted`);
 }
 function reorderLane(e, id) {
   if (!canEdit()) return;
@@ -1091,7 +1228,20 @@ $("#addTrack").onclick = () => {
 };
 
 /* ---------- sounds panel ---------- */
+function renderSoundSettings() {
+  $("#uiOn").checked = S.uiOn;
+  const opts = (A.cdBytes ? [[CD_CLIP, "3 2 1 Start"]] : []).concat([["beeps", "Beeps"], ["off", "Off"]], soundList().map(x => [x.id, x.name]));
+  if (!opts.some(o => o[0] === S.countdown)) S.countdown = "beeps";
+  $("#cdSel").innerHTML = opts.map(o => `<option value="${o[0]}" ${o[0] === S.countdown ? "selected" : ""}>${esc(o[1])}</option>`).join("");
+}
+$("#uiOn").onchange = e => { S.uiOn = e.target.checked; localStorage.setItem("ft.ui", S.uiOn ? "1" : "0"); if (S.uiOn) { ensureAudio().then(() => uiSound("ready")); } };
+$("#cdSel").onchange = async e => {
+  S.countdown = e.target.value; localStorage.setItem("ft.countdown", S.countdown);
+  await ensureAudio();
+  if (S.countdown !== "off") scheduleCountdown(Date.now() + 3200);   // preview it
+};
 function renderSounds() {
+  renderSoundSettings();
   const box = $("#sounds");
   box.innerHTML = soundList().map(s => `
     <div class="snd" data-id="${s.id}">
@@ -1231,7 +1381,7 @@ async function pipe(bytes, stream) {
   return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
 }
 async function encodePreset(t) {
-  const data = JSON.stringify({n: t.name, l: t.length, t: t.tracks.map(x => [x.name, x.color, x.sound, x.last, x.first, x.every, x.count, x.muted ? 1 : 0])});
+  const data = JSON.stringify({n: t.name, l: t.length, t: t.tracks.map(x => [x.name, x.color, x.sound, x.last, x.first, x.every, x.count])});
   const raw = new TextEncoder().encode(data);
   if (window.CompressionStream) {
     try { return "z" + b64u.enc(await pipe(raw, new CompressionStream("deflate-raw"))); } catch (e) {}
@@ -1253,8 +1403,7 @@ async function decodePreset(code) {
     last: x[3] ? (known(x[3]) || "meow1") : null,
     first: num(x[4], 0, 86400, 0),
     every: num(x[5], 0, 86400, 0),
-    count: Math.round(num(x[6], 1, 200, 1)),
-    muted: !!x[7]
+    count: Math.round(num(x[6], 1, 200, 1))
   }));
   if (!tracks.length) throw new Error("empty preset");
   return {t: {id: uid(), name: String(d.n || "Shared preset").slice(0, 40), length: num(d.l, 30, 86400, 1800), tracks}, missing};
@@ -1363,7 +1512,7 @@ let pushTimer;
 function templatePayload(t) {
   const names = {};
   t.tracks.forEach(tr => [tr.sound, tr.last].forEach(id => { if (id && S.custom[id]) names[id] = S.custom[id].name; }));
-  return {name: t.name, length: t.length, tracks: t.tracks, names};
+  return {name: t.name, length: t.length, tracks: t.tracks.map(x => { const c = Object.assign({}, x); delete c.muted; return c; }), names};
 }
 function pushTemplate() {
   clearTimeout(pushTimer);
@@ -1430,7 +1579,7 @@ function applyRoom(room) {
 function adoptRoomPreset() {
   // the old room master left: keep the room's preset so nothing changes for anyone
   const rt = S.roomTpl || N.room.template;
-  const shape = t => JSON.stringify([t.name, t.length, t.tracks.map(x => [x.name, x.color, x.sound, x.last, x.first, x.every, x.count, !!x.muted])]);
+  const shape = t => JSON.stringify([t.name, t.length, t.tracks.map(x => [x.name, x.color, x.sound, x.last, x.first, x.every, x.count])]);
   const same = S.templates.find(x => shape(x) === shape(rt));
   if (same) { S.cur = same.id; S.roomTpl = null; localStorage.setItem(KEY.cur, S.cur); renderTemplates(); flash("You're the Lobby Host now"); return; }
   const copy = JSON.parse(JSON.stringify(rt));
@@ -1449,6 +1598,7 @@ async function startRoomRun(run) {
   S.run = {start: run.start_at - N.offset, serverStart: run.start_at, tpl: run.template, id: "room"};
   renderControls(); renderLanes(); tick();
   try { await schedule(); } catch (e) { console.warn(e); }
+  if (S.run && S.run.id === "room") scheduleCountdown(S.run.start);
 }
 function leftRoom(reason) {
   const wasGuest = isGuest();
@@ -1470,6 +1620,7 @@ function showEnd(info) {
   S.endShown = info.start_at;
   hideReady();
   const t = info.template, done = info.reason === "done";
+  if (!done) uiSound("stop");
   const ranFor = done ? t.length : Math.max(0, Math.min(t.length, (info.at - info.start_at) / 1000));
   $("#endIcon").className = "endicon" + (done ? "" : " stopped");
   $("#endIcon").innerHTML = done ? ICON.check : ICON.stop;
@@ -1479,8 +1630,8 @@ function showEnd(info) {
   $("#endStats").innerHTML = t.tracks.map(tr => {
     const mine = evs.filter(e => e.tr.id === tr.id), played = mine.filter(e => e.at <= ranFor + 0.5).length;
     if (!mine.length) return "";
-    const val = tr.muted ? "muted" : mine.length > 1 ? `${played}/${mine.length}` : (played ? "\u2713" : "skipped");
-    const full = !tr.muted && played === mine.length;
+    const val = isMuted(tr.id) ? "muted" : mine.length > 1 ? `${played}/${mine.length}` : (played ? "\u2713" : "skipped");
+    const full = !isMuted(tr.id) && played === mine.length;
     return `<div class="st" style="--c:${tr.color}"><span class="dot"></span><span class="nm">${esc(tr.name)}</span><span class="v ${full ? "full" : ""}">${val}</span></div>`;
   }).join("");
   const again = isMaster() ? `<button class="btn big accent" id="endAgain">${ICON.restart}Run again</button>` : "";
@@ -1500,16 +1651,19 @@ async function toggleReady() {
 }
 function seatRow(m, extra, no) {
   const r = N.room;
-  const crown = m.cid === r.master ? `<span class="crown" title="Lobby Host" aria-label="Lobby Host"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5z"/></svg></span>` : "";
+  const crown = m.cid === r.master ? `<span class="crown" data-tip="Lobby Host" aria-label="Lobby Host"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5z"/></svg></span>` : "";
   return `<div class="seat ${m.online ? "" : "off"}">${no ? `<span class="seatno">${no}</span>` : ""}${avatar(m.name)}<span class="nm">${esc(m.name)}${m.cid === ME.cid ? '<span class="you">you</span>' : ""}</span>${crown}${extra || ""}</div>`;
 }
 function readyMark(m) { return `<span class="rstate ${m.ready ? "ok" : ""}" title="${m.ready ? "Ready" : "Not ready"}">${m.ready ? ICON.check : "&middot;"}</span>`; }
 function showReady() {
   const r = N.room; if (!r) return;
+  if (!$("#readyModal").classList.contains("show") || S.counting) uiSound("ready");
   S.counting = false;
   $("#readyModal").classList.add("show");
   $("#rdyTitle").textContent = "Ready check";
   $("#rdyCount").hidden = true;
+  $("#rdyTime").hidden = !r.check_until;
+  readyTimer();
   $("#rdySeats").innerHTML = r.members.map(m => seatRow(m, readyMark(m))).join("");
   const me = r.members.find(m => m.cid === ME.cid), meReady = !!(me && me.ready);
   $("#rdyBtns").innerHTML = `<button class="btn big ${meReady ? "" : "good"}" id="rdyBtn">${meReady ? "Not ready" : ICON.check + "Ready"}</button>` +
@@ -1517,9 +1671,18 @@ function showReady() {
   $("#rdyBtn").onclick = toggleReady;
   if (isMaster()) $("#rdyCancel").onclick = () => send({t: "cancel"});
 }
+function readyTimer() {
+  const r = N.room;
+  if (!r || !r.check || !r.check_until || S.counting) return;
+  const left = Math.max(0, (r.check_until - Date.now() - N.offset) / 1000);
+  $("#rdyBar").style.width = Math.min(100, left / 30 * 100) + "%";
+  $("#rdyBar").classList.toggle("low", left <= 10);
+  $("#rdyLeft").textContent = Math.ceil(left) + "s";
+}
 function showCountdown(n) {
   if (!S.counting) {
     S.counting = true;
+    $("#rdyTime").hidden = true;
     $("#readyModal").classList.add("show");
     $("#rdyTitle").textContent = "Starting";
     $("#rdySeats").innerHTML = ""; $("#rdyBtns").innerHTML = "";
@@ -1541,7 +1704,7 @@ function renderLobby() {
   $("#lobbyPanel").hidden = !show;
   $("#lobbyTx").textContent = inRoom() ? N.room.code : "Lobby";
   $("#modeBadge").hidden = inRoom();
-  if (show) { $("#cTitle").placeholder = `${tpl().name} farm`; renderRoomList(); }
+  if (show) { $("#cTitle").placeholder = tpl().name; renderRoomList(); }
 }
 function roomCard(r) {
   const seats = Array.from({length: r.max}, (_, i) => `<i class="${i < r.count ? "f" : ""}"></i>`).join("");
@@ -1700,6 +1863,7 @@ $("#chatForm").onsubmit = e => {
 function renderGuestMode() {
   const g = isGuest(), lock = roomFarming();
   $("#lockVeil").hidden = !lock;
+  $("#tlPanel").classList.toggle("farmlock", lock);
   $("#tlHint").style.visibility = lock ? "hidden" : "";
   $("#tplSel").disabled = lock; $("#tplMenuBtn").disabled = lock;
   if ($("#rEdit")) { $("#rEdit").disabled = lock; if (lock) $("#rForm").classList.remove("show"); }
@@ -1722,6 +1886,7 @@ function renderAll() { renderTemplates(); renderControls(); renderLanes(); rende
   if (S.run) $("#resumeBtn").classList.add("show");
   renderAll();
   setInterval(tick, 250);
+  loadCountdownClip();
   if (sessionStorage.getItem("ft.room")) connect();
   checkImport();
 })();
