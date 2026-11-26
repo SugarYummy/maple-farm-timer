@@ -137,6 +137,7 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .mk.first{width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:6px}
 .mk.last{box-shadow:0 0 0 2px var(--c)}
 .mk.mutedmk{opacity:.45}
+.mk.offmk{background:var(--surface);box-shadow:inset 0 0 0 2px var(--c)}
 .mk.cut{background:transparent;border:2px dashed var(--bad);cursor:default;opacity:.7}
 .mk.played{opacity:.35}
 .mk.nextup{animation:pulse 1.2s ease-in-out infinite}
@@ -169,6 +170,7 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .f label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
 .f .inp,.f .sel{width:100%}
 .f.wide{grid-column:span 2}
+.iacts{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
 .sw{display:flex;gap:6px;flex-wrap:wrap}
 .sw button{width:24px;height:24px;border-radius:50%;border:2px solid transparent;background:var(--c)}
 .sw button.on{border-color:var(--fg)}
@@ -178,6 +180,16 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .step button:first-child{border-radius:8px 0 0 8px}
 .step button:last-child{border-radius:0 8px 8px 0}
 .with{display:flex;gap:6px}
+.each{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.each-h{font-size:12px;color:var(--muted);margin-bottom:8px}
+.each-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px}
+.er{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 8px;border-radius:8px;border:1px solid transparent}
+.er.own{border-color:color-mix(in oklab,var(--accent) 45%,var(--line));background:color-mix(in oklab,var(--accent) 7%,transparent)}
+.er.cut{opacity:.4}
+.er .en{width:20px;font-weight:700;color:var(--muted);font-size:12.5px;text-align:right;flex:none}
+.er .et{width:52px;font-variant-numeric:tabular-nums;font-size:13px;flex:none}
+.er .sel{flex:1;min-width:0;padding:5px 8px;font-size:13px}
+.er .btn.icon{width:30px;height:30px;padding:5px}
 .with .sel{flex:1}
 
 /* sounds */
@@ -507,8 +519,8 @@ const ICON = {
 
 function farm33() {
   return {id:"farm33", name:"Farm 3-3", length:1800, tracks:[
-    {id:uid(), name:"Start", color:"#7a5cf0", sound:"meow3", last:null, first:0, every:0, count:1},
-    {id:uid(), name:"Loot", color:"#2f9bd6", sound:"meow2", last:"meow1", first:132, every:117, count:15},
+    {id:uid(), name:"Buff", color:"#7a5cf0", sound:"meow3", last:null, first:20, every:0, count:1},
+    {id:uid(), name:"Loot", color:"#2f9bd6", sound:"meow2", last:null, each:{"14":"meow1"}, first:132, every:117, count:15},
     {id:uid(), name:"Sayram's Elixir", color:"#d6409f", sound:"hi", last:null, first:900, every:900, count:1}
   ]};
 }
@@ -520,13 +532,22 @@ function saveMutes() { localStorage.setItem("ft.mutes", JSON.stringify([...S.mut
 function load() {
   try { S.templates = JSON.parse(localStorage.getItem(KEY.tpl)) || []; } catch (e) { S.templates = []; }
   if (!S.templates.length) S.templates = [farm33()];
+  if (!localStorage.getItem("ft.m1")) {
+    S.templates.forEach(t => {
+      if (t.id !== "farm33") return;
+      const tr = t.tracks.find(x => x.name === "Start" && x.first === 0 && x.sound === "meow3" && x.count === 1);
+      if (tr) { tr.name = "Buff"; tr.first = 20; }
+    });
+    localStorage.setItem("ft.m1", "1");
+    localStorage.setItem(KEY.tpl, JSON.stringify(S.templates));
+  }
   S.cur = localStorage.getItem(KEY.cur);
   if (!S.templates.some(t => t.id === S.cur)) S.cur = S.templates[0].id;
   const v = parseFloat(localStorage.getItem(KEY.vol)); if (!isNaN(v)) S.vol = v;
   S.countdown = UI_SOUNDS.countdown ? CD_CLIP : "beeps";
   try { S.mutes = new Set(JSON.parse(localStorage.getItem("ft.mutes")) || []); } catch (e) { S.mutes = new Set(); }
   // older versions saved mute inside the preset: move it to this browser's own list
-  S.templates.forEach(t => t.tracks.forEach(tr => { if (tr.muted) S.mutes.add(tr.id); delete tr.muted; }));
+  S.templates.forEach(t => t.tracks.forEach(tr => { if (tr.muted) S.mutes.add(tr.id); delete tr.muted; migrateLast(tr); }));
   saveMutes();
   try { S.run = JSON.parse(localStorage.getItem(KEY.run)); } catch (e) { S.run = null; }
   document.documentElement.dataset.theme = localStorage.getItem(KEY.theme) || "dark";
@@ -543,6 +564,17 @@ const roomFarming = () => !!(N.room && N.room.run && Date.now() + N.offset < N.r
 const canEdit = () => !isGuest() && !roomFarming();
 const tpl = () => isGuest() ? S.roomTpl : S.templates.find(t => t.id === S.cur);
 const track = id => tpl().tracks.find(t => t.id === id);
+
+// sound for repeat number i (0 = first). "off" means that one stays silent.
+function soundAt(tr, i) {
+  if (tr.each && tr.each[i]) return tr.each[i];
+  if (tr.last && tr.count > 1 && i === tr.count - 1) return tr.last;   // older presets
+  return tr.sound;
+}
+function migrateLast(tr) {
+  if (tr.last) { tr.each = tr.each || {}; if (!tr.each[tr.count - 1]) tr.each[tr.count - 1] = tr.last; }
+  tr.last = null;
+}
 
 /* ---------- time helpers ---------- */
 function fmt(t, dec) {
@@ -570,8 +602,8 @@ function events(t) {
   t.tracks.forEach(tr => {
     for (let i = 0; i < tr.count; i++) {
       const at = tr.first + i * (tr.every || 0);
-      const sound = (i === tr.count - 1 && tr.last && tr.count > 1) ? tr.last : tr.sound;
-      out.push({at, sound, tr, n:i + 1, cut: at >= t.length, muted: isMuted(tr.id)});
+      const sound = soundAt(tr, i);
+      out.push({at, sound, tr, n:i + 1, cut: at >= t.length, muted: isMuted(tr.id) || sound === "off"});
       if (!tr.every) break;
     }
   });
@@ -643,6 +675,13 @@ async function uiSound(name) {
 }
 const CD_CLIP = "clip";
 const CD_GO_AT = 2.09;   // seconds into the built-in clip where "start!" begins
+const CD_SAYS = [2.03, 1.27, 0.61];   // seconds before "start!" where the clip says 3, 2, 1
+const CD_LEAD_MS = 2400;  // clip mode: start right away, no silent wait before the "3"
+// the big number follows the voice in the clip, so the screen and the sound match
+function cdNumber(left) {
+  if (S.countdown === CD_CLIP && UI_SOUNDS.countdown) return left > CD_SAYS[1] ? 3 : left > CD_SAYS[2] ? 2 : 1;
+  return Math.max(1, Math.ceil(left));
+}
 function countdownClip() {
   if (!A.cdClipP) {
     A.cdClipP = (async () => {
@@ -756,12 +795,12 @@ async function schedule() {
 const elapsed = () => S.run ? (Date.now() - S.run.start) / 1000 : 0;
 async function start() {
   await ensureAudio();
-  const lead = S.countdown === "off" ? 60 : 3000;
+  const lead = S.countdown === "off" ? 60 : S.countdown === CD_CLIP && UI_SOUNDS.countdown ? CD_LEAD_MS : 3000;
   S.run = {start: Date.now() + lead, tpl: JSON.parse(JSON.stringify(tpl())), id: S.cur};
   localStorage.setItem(KEY.run, JSON.stringify(S.run));
   renderControls(); tick();
+  if (lead > 1000) scheduleCountdown(S.run.start);   // first, so loading the timeline sounds can't delay the "3"
   await schedule();
-  if (S.run && lead > 1000) scheduleCountdown(S.run.start);
 }
 function stopLocal() {
   cancelScheduled(); cancelCountdown();
@@ -794,7 +833,7 @@ function tick() {
     else flash("Farming done");
     return;
   }
-  if (run) { if (el < -0.1) showCountdown(Math.ceil(-el)); else if (S.counting) hideReady(); }
+  if (run) { if (el < -0.02) showCountdown(cdNumber(-el)); else if (S.counting) hideReady(); }
   el = Math.max(0, el);
   const left = run ? t.length - el : t.length;
   $("#bigTime").textContent = cd(left);
@@ -942,9 +981,9 @@ function markersHTML(tr) {
   let h = "", lastAt = 0;
   for (let i = 0; i < tr.count; i++) {
     const at = tr.first + i * (tr.every || 0);
-    const cls = ["mk", isMuted(tr.id) ? "mutedmk" : "", i === 0 ? "first" : "", i === tr.count - 1 && tr.count > 1 ? "last" : "", at >= t.length ? "cut" : ""].join(" ");
-    const snd = (i === tr.count - 1 && tr.last && tr.count > 1) ? tr.last : tr.sound;
-    h += `<div class="${cls}" data-i="${i}" data-at="${at}" data-tid="${tr.id}" style="left:${pct(at)}" data-tip="${esc(tr.name)}${tr.count > 1 ? " " + (i + 1) : ""} \u00b7 ${fmt(at, true)} \u00b7 ${esc(soundName(snd))}"></div>`;
+    const snd = soundAt(tr, i);
+    const cls = ["mk", isMuted(tr.id) ? "mutedmk" : "", i === 0 ? "first" : "", snd === "off" ? "offmk" : snd !== tr.sound ? "last" : "", at >= t.length ? "cut" : ""].join(" ");
+    h += `<div class="${cls}" data-i="${i}" data-at="${at}" data-tid="${tr.id}" style="left:${pct(at)}" data-tip="${esc(tr.name)}${tr.count > 1 ? " " + (i + 1) : ""} \u00b7 ${fmt(at, true)} \u00b7 ${snd === "off" ? "silent" : esc(soundName(snd))}"></div>`;
     lastAt = at;
     if (!tr.every) break;
   }
@@ -1017,7 +1056,8 @@ function dragLane(e, el) {
     } else if (isCount) {
       editCount(tr, el);
     } else if (isMk) {
-      preview(isMk && target.dataset.i == tr.count - 1 && tr.last && tr.count > 1 ? tr.last : tr.sound);
+      const snd = soundAt(tr, +target.dataset.i);
+      if (snd !== "off") preview(snd);
     }
   };
   el.addEventListener("pointermove", move);
@@ -1213,6 +1253,21 @@ function soundOptions(sel, withSame) {
   if (sel && !BUILTIN[sel] && !S.custom[sel]) h += `<option value="${sel}" selected>Missing sound</option>`;
   return h + `<option value="__up">+ Upload sound...</option>`;
 }
+function eachListHTML(tr) {
+  const t = tpl();
+  let rows = "";
+  for (let i = 0; i < tr.count; i++) {
+    const at = tr.first + i * tr.every, own = tr.each && tr.each[i];
+    let opts = `<option value="">Same</option><option value="off" ${own === "off" ? "selected" : ""}>Silent</option>`;
+    soundList().forEach(x => { if (x.id !== tr.sound) opts += `<option value="${x.id}" ${x.id === own ? "selected" : ""}>${esc(x.name)}</option>`; });
+    if (own && own !== "off" && !hasSound(own)) opts += `<option value="${own}" selected>Missing sound</option>`;
+    opts += `<option value="__up">+ Upload sound...</option>`;
+    rows += `<div class="er ${own ? "own" : ""} ${at >= t.length ? "cut" : ""}"><span class="en">${i + 1}</span><span class="et">${fmt(at, true)}</span>` +
+      `<select class="sel" data-each="${i}" aria-label="Sound for ${i + 1}">${opts}</select>` +
+      `<button class="btn icon" data-eachplay="${i}" aria-label="Play ${i + 1}" ${own === "off" ? "disabled" : ""}>${ICON.play}</button></div>`;
+  }
+  return `<div class="each"><div class="each-h">Each one</div><div class="each-grid">${rows}</div></div>`;
+}
 function renderInspector() {
   const box = $("#insp"), tr = S.sel && track(S.sel);
   if (!tr) { box.classList.remove("show"); box.innerHTML = ""; return; }
@@ -1225,11 +1280,11 @@ function renderInspector() {
       <div class="f"><label>Sound</label><div class="with"><select class="sel" id="iSound">${soundOptions(tr.sound)}</select><button class="btn icon" id="iPlay" aria-label="Play">${ICON.play}</button></div></div>
       <div class="f"><label>Starts at</label><input class="inp" id="iFirst" value="${fmt(tr.first, true)}" placeholder="2:12"></div>
       <div class="f"><label>Times</label><div class="step"><button id="iMinus" aria-label="Fewer">&minus;</button><input class="inp" id="iCount" value="${tr.count}" inputmode="numeric"><button id="iPlus" aria-label="More">+</button></div></div>
-      ${rep ? `<div class="f"><label>Every</label><input class="inp" id="iEvery" value="${fmt(tr.every, true)}" placeholder="1:57"></div>
-      <div class="f"><label>Last one</label><div class="with"><select class="sel" id="iLast">${soundOptions(tr.last, true)}</select><button class="btn icon" id="iPlayLast" aria-label="Play">${ICON.play}</button></div></div>` : ""}
+      ${rep ? `<div class="f"><label>Every</label><input class="inp" id="iEvery" value="${fmt(tr.every, true)}" placeholder="1:57"></div>` : ""}
       <div class="f"><label>Color</label><div class="sw">${COLORS.map(c => `<button style="--c:${c}" data-c="${c}" class="${c === tr.color ? "on" : ""}" aria-label="Color"></button>`).join("")}</div></div>
-      <div class="f" style="display:flex;align-items:flex-end;justify-content:flex-end;gap:8px"><button class="btn" id="iDup">${ICON.copy}Duplicate</button><button class="btn bad" id="iDel">${ICON.x}Remove</button></div>
-    </div>`;
+    </div>
+    ${rep ? eachListHTML(tr) : ""}
+    <div class="iacts"><button class="btn" id="iDup">${ICON.copy}Duplicate</button><button class="btn bad" id="iDel">${ICON.x}Remove</button></div>`;
   const change = (label, fn, rerender) => {
     const before = JSON.stringify(tpl());
     fn();
@@ -1255,9 +1310,22 @@ function renderInspector() {
       preview(el.value || tr.sound);
     };
   };
-  pick("#iSound", "sound"); pick("#iLast", "last");
+  pick("#iSound", "sound");
   $("#iPlay").onclick = e => preview(tr.sound, e.currentTarget);
-  if ($("#iPlayLast")) $("#iPlayLast").onclick = e => preview(tr.last || tr.sound, e.currentTarget);
+  box.querySelectorAll("[data-each]").forEach(sel => sel.onchange = () => {
+    const i = sel.dataset.each, v = sel.value;
+    const set = id => change(`${tr.name} ${+i + 1} changed`, () => {
+      tr.each = tr.each || {};
+      if (!id || id === tr.sound) delete tr.each[i]; else tr.each[i] = id;
+    }, true);
+    if (v === "__up") { sel.value = tr.each && tr.each[i] || ""; upload(set); return; }
+    set(v);
+    if (v && v !== "off") preview(v);
+  });
+  box.querySelectorAll("[data-eachplay]").forEach(b => b.onclick = () => {
+    const snd = soundAt(tr, +b.dataset.eachplay);
+    if (snd !== "off") preview(snd, b);
+  });
   timeField("#iFirst", "first", "Start changed", 0);
   timeField("#iEvery", "every", "Interval changed", 1);
   const setCount = n => change("Times changed", () => { tr.count = Math.max(1, Math.min(200, n)); if (tr.count > 1 && !tr.every) tr.every = 60; }, true);
@@ -1267,7 +1335,7 @@ function renderInspector() {
   box.querySelectorAll(".sw button").forEach(b => b.onclick = () => change("Color changed", () => tr.color = b.dataset.c, true));
   $("#iDup").onclick = () => {
     const t = tpl(), i = t.tracks.findIndex(x => x.id === tr.id);
-    const copy = Object.assign({}, tr, {id: uid(), name: (tr.name + " copy").slice(0, 40)});
+    const copy = Object.assign(JSON.parse(JSON.stringify(tr)), {id: uid(), name: (tr.name + " copy").slice(0, 40)});
     change("Timer duplicated", () => { t.tracks.splice(i + 1, 0, copy); S.sel = copy.id; }, true);
   };
   $("#iDel").onclick = () => {
@@ -1313,7 +1381,7 @@ function renderSounds() {
     };
     const del = row.querySelector('[data-act="del"]');
     if (del) del.onclick = async () => {
-      const users = S.templates.flatMap(t => t.tracks).filter(tr => tr.sound === id || tr.last === id);
+      const users = S.templates.flatMap(t => t.tracks).filter(tr => tr.sound === id || tr.last === id || Object.values(tr.each || {}).includes(id));
       if (users.length && !confirm(`${soundName(id)} is used by ${users.map(u => u.name).join(", ")}. Delete it?`)) return;
       delete S.custom[id]; delete A.buffers[id]; await idb.del(id);
       renderSounds(); renderLanes(); renderInspector();
@@ -1426,7 +1494,7 @@ async function pipe(bytes, stream) {
   return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
 }
 async function encodePreset(t) {
-  const data = JSON.stringify({n: t.name, l: t.length, t: t.tracks.map(x => [x.name, x.color, x.sound, x.last, x.first, x.every, x.count])});
+  const data = JSON.stringify({n: t.name, l: t.length, t: t.tracks.map(x => [x.name, x.color, x.sound, null, x.first, x.every, x.count, x.each && Object.keys(x.each).length ? x.each : 0])});
   const raw = new TextEncoder().encode(data);
   if (window.CompressionStream) {
     try { return "z" + b64u.enc(await pipe(raw, new CompressionStream("deflate-raw"))); } catch (e) {}
@@ -1446,10 +1514,19 @@ async function decodePreset(code) {
     color: COLORS.includes(x[1]) ? x[1] : COLORS[i % COLORS.length],
     sound: known(x[2]) || "meow1",
     last: x[3] ? (known(x[3]) || "meow1") : null,
+    each: (() => {
+      const out = {};
+      if (x[7] && typeof x[7] === "object") Object.keys(x[7]).slice(0, 200).forEach(k => {
+        const i = parseInt(k, 10), v = x[7][k];
+        if (i >= 0 && i < 200) out[i] = v === "off" ? "off" : (known(v) || "meow1");
+      });
+      return out;
+    })(),
     first: num(x[4], 0, 86400, 0),
     every: num(x[5], 0, 86400, 0),
     count: Math.round(num(x[6], 1, 200, 1))
   }));
+  tracks.forEach(migrateLast);
   if (!tracks.length) throw new Error("empty preset");
   return {t: {id: uid(), name: String(d.n || "Shared preset").slice(0, 40), length: num(d.l, 30, 86400, 1800), tracks}, missing};
 }
@@ -1566,7 +1643,7 @@ function joinCode(code) {
 let pushTimer;
 function templatePayload(t) {
   const names = {};
-  t.tracks.forEach(tr => [tr.sound, tr.last].forEach(id => { if (id && S.custom[id]) names[id] = S.custom[id].name; }));
+  t.tracks.forEach(tr => [tr.sound, tr.last].concat(Object.values(tr.each || {})).forEach(id => { if (id && S.custom[id]) names[id] = S.custom[id].name; }));
   return {name: t.name, length: t.length, tracks: t.tracks.map(x => { const c = Object.assign({}, x); delete c.muted; return c; }), names};
 }
 function pushTemplate() {
@@ -1634,7 +1711,7 @@ function applyRoom(room) {
 function adoptRoomPreset() {
   // the old room master left: keep the room's preset so nothing changes for anyone
   const rt = S.roomTpl || N.room.template;
-  const shape = t => JSON.stringify([t.name, t.length, t.tracks.map(x => [x.name, x.color, x.sound, x.last, x.first, x.every, x.count])]);
+  const shape = t => JSON.stringify([t.name, t.length, t.tracks.map(x => [x.name, x.color, x.sound, x.first, x.every, x.count, Array.from({length: x.count}, (_, i) => soundAt(x, i))])]);
   const same = S.templates.find(x => shape(x) === shape(rt));
   if (same) { S.cur = same.id; S.roomTpl = null; localStorage.setItem(KEY.cur, S.cur); renderTemplates(); flash("You're the Lobby Host now"); return; }
   const copy = JSON.parse(JSON.stringify(rt));
@@ -1652,8 +1729,8 @@ async function startRoomRun(run) {
   if (S.run && S.run.id !== "room") localStorage.removeItem(KEY.run);
   S.run = {start: run.start_at - N.offset, serverStart: run.start_at, tpl: run.template, id: "room"};
   renderControls(); renderLanes(); tick();
+  scheduleCountdown(S.run.start);
   try { await schedule(); } catch (e) { console.warn(e); }
-  if (S.run && S.run.id === "room") scheduleCountdown(S.run.start);
 }
 function leftRoom(reason) {
   const wasGuest = isGuest();
@@ -1764,8 +1841,11 @@ function showCountdown(n) {
     $("#rdyTitle").textContent = "Starting";
     $("#rdySeats").innerHTML = ""; $("#rdyBtns").innerHTML = "";
     $("#rdyCount").hidden = false;
+    // update often while counting, so each number shows right when it's said
+    const fast = () => { if (!S.counting) return; tick(); setTimeout(fast, 30); };
+    setTimeout(fast, 30);
   }
-  $("#rdyCount").textContent = n;
+  if ($("#rdyCount").textContent != n) $("#rdyCount").textContent = n;
 }
 function hideReady() { S.counting = false; $("#readyModal").classList.remove("show"); }
 
@@ -1903,7 +1983,10 @@ $("#eGo").onclick = () => {
 };
 $("#rSave").onclick = () => {
   const copy = JSON.parse(JSON.stringify(S.roomTpl)); copy.id = uid(); delete copy.names;
-  copy.tracks.forEach(x => { x.id = uid(); if (!hasSound(x.sound)) x.sound = "meow1"; if (x.last && !hasSound(x.last)) x.last = "meow1"; });
+  copy.tracks.forEach(x => {
+    x.id = uid(); if (!hasSound(x.sound)) x.sound = "meow1"; migrateLast(x);
+    Object.keys(x.each || {}).forEach(k => { if (x.each[k] !== "off" && !hasSound(x.each[k])) x.each[k] = "meow1"; });
+  });
   const names = new Set(S.templates.map(x => x.name));
   let name = copy.name, n = 2;
   while (names.has(name)) name = `${copy.name} (${n++})`;
