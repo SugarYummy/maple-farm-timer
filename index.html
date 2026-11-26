@@ -817,6 +817,7 @@ function stopLocal() {
 }
 function stop() {
   if (S.run && S.run.id === "room") { if (isMaster()) send({t: "stop"}); return; }
+  if (S.run) uiSound("stop");
   stopLocal();
 }
 async function restart() { cancelScheduled(); await start(); }
@@ -842,7 +843,7 @@ function tick() {
   if (run && el >= t.length) {
     stopLocal();
     if (run.id === "room") showEnd({reason: "done", by: "", start_at: run.serverStart, at: Date.now() + N.offset, template: run.tpl});
-    else flash("Farming done");
+    else { uiSound("stop"); flash("Farming done"); }
     return;
   }
   if (run) { if (el < -0.02) showCountdown(cdNumber(-el)); else if (S.counting) hideReady(); }
@@ -1794,7 +1795,7 @@ function showEnd(info) {
   S.endShown = info.start_at;
   hideReady();
   const t = info.template, done = info.reason === "done";
-  if (!done) uiSound("stop");
+  uiSound("stop");
   const ranFor = done ? t.length : Math.max(0, Math.min(t.length, (info.at - info.start_at) / 1000));
   $("#endIcon").className = "endicon" + (done ? "" : " stopped");
   $("#endIcon").innerHTML = done ? ICON.check : ICON.stop;
