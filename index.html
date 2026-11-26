@@ -287,6 +287,10 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .seatlist{display:flex;flex-direction:column;gap:8px}
 .seat{display:flex;align-items:center;gap:10px;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:46px;text-align:left}
 .seat.off{opacity:.5}
+.voicebots{display:flex;flex-direction:column;gap:6px;margin-top:-4px}
+.vbot{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:6px 10px;border-radius:10px;border:1px dashed var(--line)}
+.vbot svg{width:16px;height:16px;flex:none;color:#5865f2}
+.vbot b{color:var(--fg);font-weight:600}
 .seat.open{border-style:dashed;color:var(--muted);font-weight:600;width:100%;background:transparent}
 .seat.open:hover{border-color:var(--accent);color:var(--accent)}
 .seat .nm{font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -448,6 +452,7 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
       <button class="btn accent" id="eGo">Save</button>
     </div>
     <div class="seatlist" id="rSeats"></div>
+    <div class="voicebots" id="rBots" hidden></div>
     <div class="chat">
       <div class="chatlog" id="chatLog"></div>
       <form class="chatin" id="chatForm"><input class="inp" id="chatIn" maxlength="300" placeholder="Say something" autocomplete="off"><button class="btn accent">Send</button></form>
@@ -1937,6 +1942,10 @@ function renderRoom() {
     return seatRow(m, (r.check ? readyMark(m) : "") + acts, i + 1);
   });
   $("#rSeats").innerHTML = seats.join("");
+  // the Discord bot playing this room's timer in voice (/farm code)
+  const bots = r.watchers || [];
+  $("#rBots").hidden = !bots.length;
+  $("#rBots").innerHTML = bots.map(w => `<div class="vbot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg><span><b>${esc(w.name)}</b> is in voice${w.where ? " \u00b7 " + esc(w.where) : ""}</span></div>`).join("");
   $("#rSeats").querySelectorAll("[data-kick]").forEach(b => b.onclick = () => send({t: "kick", cid: b.dataset.kick}));
   $("#rSeats").querySelectorAll("[data-host]").forEach(b => b.onclick = async () => {
     const m = N.room && N.room.members.find(x => x.cid === b.dataset.host);
