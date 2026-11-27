@@ -155,9 +155,10 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .cnt.flip{transform:translate(calc(-100% - 10px),-50%)}
 .cnt.one{opacity:0;transition:opacity .15s}
 .lane:hover .cnt.one,.lane.sel .cnt.one{opacity:1}
+.timeline.locked .cnt.one,.farmlock .cnt.one{display:none}
 @media (hover:none){.kb{display:none}}
 .playhead{position:absolute;top:0;bottom:0;width:2px;background:var(--fg);pointer-events:none;z-index:4;display:none}
-.playhead::before{content:attr(data-t);position:absolute;top:0;left:1px;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.playhead::before{content:attr(data-t);position:absolute;top:22px;left:1px;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
 /* faint guide lines under the lanes, one per ruler label, plus the end line */
 .tlgrid{position:absolute;top:44px;bottom:0;left:var(--head);right:var(--tail);pointer-events:none}
 .tlgrid i{position:absolute;top:0;bottom:0;width:1px;background:color-mix(in oklab,var(--line) 50%,transparent)}
@@ -166,7 +167,7 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 #lanes{position:relative}
 /* hover the timeline to see the exact time under the mouse */
 .hoverline{position:absolute;top:22px;bottom:0;width:0;border-left:1px dashed color-mix(in oklab,var(--fg) 45%,transparent);pointer-events:none;z-index:3;display:none}
-.hoverline::before{content:attr(data-t);position:absolute;top:0;left:0;transform:translate(-50%,-100%);background:var(--raise);border:1px solid var(--line);color:var(--fg);font-size:11px;font-weight:600;padding:0 6px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hoverline::before{content:attr(data-t);position:absolute;top:0;left:0;transform:translate(-50%,0);background:var(--raise);border:1px solid var(--line);color:var(--fg);font-size:11px;font-weight:600;padding:0 6px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .hoverline.show{display:block}
 @media (hover:none){.hoverline{display:none !important}}
 .tick.minor{height:4px;border-left-color:color-mix(in oklab,var(--line) 70%,transparent)}
@@ -629,7 +630,7 @@ function farm33() {
 }
 
 /* ---------- state ---------- */
-const S = {templates:[], cur:null, sel:null, custom:{}, run:null, vol:0.9, undo:[], frozenScale:null, mutes:new Set()};
+const S = {templates:[], cur:null, sel:null, custom:{}, run:null, vol:0.9, undo:[], redo:[], frozenScale:null, mutes:new Set()};
 const isMuted = id => S.mutes.has(id);
 function saveMutes() { localStorage.setItem("ft.mutes", JSON.stringify([...S.mutes])); }
 function load() {
@@ -693,16 +694,19 @@ function fmt(t, dec) {
   let ss = dec && Math.abs(s - Math.round(s)) > 0.001 ? s.toFixed(1) : String(Math.round(s));
   if (ss === "60" || ss === "60.0") { m += 1; ss = "0"; }
   if (parseFloat(ss) < 10) ss = "0" + ss;
+  if (m >= 60) return (neg ? "-" : "") + Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0") + ":" + ss;   // 1:00:00, not 60:00
   return (neg ? "-" : "") + m + ":" + ss;
 }
 const cd = t => fmt(Math.max(0, Math.ceil(t - 0.0001)));
 function parseTime(str) {
   str = String(str).trim().toLowerCase();
   if (!str) return null;
-  let m = str.match(/^(\d+):(\d{1,2}(?:\.\d+)?)$/);
+  let m = str.match(/^(\d+):(\d{1,2}):(\d{1,2}(?:\.\d+)?)$/);   // 1:05:30
+  if (m) return +m[1] * 3600 + +m[2] * 60 + +m[3];
+  m = str.match(/^(\d+):(\d{1,2}(?:\.\d+)?)$/);
   if (m) return +m[1] * 60 + +m[2];
-  m = str.match(/^(?:(\d+(?:\.\d+)?)m)?\s*(?:(\d+(?:\.\d+)?)s?)?$/);
-  if (m && (m[1] || m[2])) return (+m[1] || 0) * 60 + (+m[2] || 0);
+  m = str.match(/^(?:(\d+(?:\.\d+)?)h)?\s*(?:(\d+(?:\.\d+)?)m)?\s*(?:(\d+(?:\.\d+)?)s?)?$/);   // 1h 5m 30s
+  if (m && (m[1] || m[2] || m[3])) return (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0);
   return null;
 }
 const snap = (v, step) => Math.round(v / step) * step;
@@ -991,8 +995,10 @@ function tick() {
     const nx = run ? mine.find(e => e.at >= el - 0.3) : mine[0];
     const card = box.querySelector(`[data-id="${tr.id}"]`);
     card.querySelector(".nm").textContent = tr.name;
+    if (card.style.getPropertyValue("--c") !== tr.color) card.style.setProperty("--c", tr.color);   // color changed in the panel
     const mu = isMuted(tr.id);
     card.classList.toggle("done", !nx && !mu);
+    const past = !mine.length;   // every ring is after the end of the preset
     card.classList.toggle("muted", mu);
     const mb = card.querySelector(".nmute");
     if (mb.dataset.m !== String(mu)) {
@@ -1001,6 +1007,9 @@ function tick() {
     }
     if (mu) {
       card.querySelector(".cd").innerHTML = `<span style="font-size:15px;color:var(--muted)">muted</span>`;
+      card.querySelector(".ct").textContent = "";
+    } else if (past) {
+      card.querySelector(".cd").innerHTML = `<span style="font-size:15px;color:var(--muted)">after end</span>`;
       card.querySelector(".ct").textContent = "";
     } else if (!nx) {
       card.querySelector(".cd").innerHTML = `<span class="check">${ICON.check}</span>`;
@@ -1130,6 +1139,7 @@ function renderLanes() {
   });
   renderRuler();
   const sb = $("#startBtn"); if (sb) sb.disabled = !t.tracks.length;   // nothing to play yet
+  refreshInspector();
   tick();
 }
 function markersHTML(tr) {
@@ -1154,6 +1164,7 @@ function updateLane(tr) {
   el.innerHTML = `<div class="rail"></div>${markersHTML(tr)}`;
   const sm = document.querySelector(`.lane[data-id="${tr.id}"] .sm`);
   if (sm) sm.textContent = laneSummary(tr);
+  if (S.sel === tr.id) refreshInspector();   // live while dragging
   tick();
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -1251,8 +1262,13 @@ function dragEnd(e) {
     t.length = Math.max(30, snap(timeAt(ev.clientX, bar), ev.shiftKey ? 1 : 15));
     h.style.left = pct(t.length);
     h.dataset.label = fmt(t.length, true) + " end";
+    h.classList.toggle("flip", t.length / S.frozenScale > 0.8);   // keep the label inside near the right edge
     bar.querySelector(".after").style.left = pct(t.length);
+    const gl = $("#tlgrid .end"), gp = $("#tlgrid .past");
+    if (gl) gl.style.left = (t.length / S.frozenScale * 100) + "%";
+    if (gp) gp.style.left = (t.length / S.frozenScale * 100) + "%";
     document.querySelectorAll(".mk[data-at]").forEach(m => m.classList.toggle("cut", +m.dataset.at >= t.length));
+    refreshInspector();
     showTip(ev.clientX, bar.getBoundingClientRect().top + 6, `length ${fmt(t.length, true)}`);
     tick();
   };
@@ -1402,7 +1418,7 @@ function editLength() {
     h.style.visibility = "";
     const sec = v === null ? null : parseTime(v);
     if (sec === null || sec < 30 || Math.abs(sec - t.length) < 0.05) { renderRuler(); return; }
-    editTpl("Length changed", () => { t.length = Math.round(sec * 10) / 10; });
+    editTpl("Length changed", () => { t.length = Math.min(86400, Math.round(sec * 10) / 10); });   // 24h max, same as the lobby
   });
 }
 function nudge(dir, fine) {
@@ -1431,7 +1447,7 @@ function eachListHTML(tr) {
   let rows = "";
   for (let i = 0; i < tr.count; i++) {
     const at = tr.first + i * tr.every, own = tr.each && tr.each[i];
-    let opts = `<option value="">Same</option><option value="off" ${own === "off" ? "selected" : ""}>Silent</option>`;
+    let opts = `<option value="">${esc(soundName(tr.sound))}</option><option value="off" ${own === "off" ? "selected" : ""}>Silent</option>`;
     soundList().forEach(x => { if (x.id !== tr.sound) opts += `<option value="${x.id}" ${x.id === own ? "selected" : ""}>${esc(x.name)}</option>`; });
     if (own && own !== "off" && !hasSound(own)) opts += `<option value="${own}" selected>Missing sound</option>`;
     opts += `<option value="__up">+ Upload sound...</option>`;
@@ -1440,6 +1456,23 @@ function eachListHTML(tr) {
       `<button class="btn icon" data-eachplay="${i}" aria-label="Play ${i + 1}" ${own === "off" ? "disabled" : ""}>${ICON.play}</button></div>`;
   }
   return `<div class="each"><div class="each-h">Each one</div><div class="each-grid">${rows}</div></div>`;
+}
+// keep the open timer panel in step with the timeline, without interrupting typing
+// force: re-render even if a box has unsaved typing (used right after a change is committed)
+function refreshInspector(force) {
+  const box = $("#insp");
+  if (!box.classList.contains("show")) return;
+  const a = document.activeElement, inBox = a && a !== document.body && box.contains(a);
+  if (inBox && !force && a.tagName === "INPUT" && a.value !== a.defaultValue) return;   // mid-typing: updates when you're done
+  const d = inBox ? a.dataset : {};
+  const key = !inBox ? null : a.id ? "#" + a.id : d.each != null ? `[data-each="${d.each}"]` : d.eachplay != null ? `[data-eachplay="${d.eachplay}"]` : d.c ? `.sw [data-c="${d.c}"]` : null;
+  const caret = inBox && a.tagName === "INPUT" ? [a.selectionStart, a.selectionEnd] : null;
+  renderInspector();
+  const n = key && box.querySelector(key);
+  if (n) {
+    n.focus({preventScroll: true});
+    if (caret && n.tagName === "INPUT") try { n.setSelectionRange(caret[0], caret[1]); } catch (e) {}
+  }
 }
 function renderInspector() {
   const box = $("#insp"), tr = S.sel && track(S.sel);
@@ -1463,13 +1496,13 @@ function renderInspector() {
     fn();
     pushUndo(before, label);
     save(); liveChanged(); renderLanes();
-    if (rerender) renderInspector();
+    if (rerender) refreshInspector(true);   // keeps your place in the panel
   };
   const timeField = (sel, key, label, min) => {
     const el = $(sel); if (!el) return;
     el.onchange = () => {
       const v = parseTime(el.value);
-      if (v === null || v < min) { el.value = fmt(tr[key], true); return; }
+      if (v === null || v < min || v > 86400) { el.value = fmt(tr[key], true); return; }
       change(label, () => tr[key] = Math.round(v * 10) / 10, true);
     };
   };
@@ -1479,7 +1512,7 @@ function renderInspector() {
     const el = $(sel); if (!el) return;
     el.onchange = () => {
       if (el.value === "__up") { upload(id => change("Sound changed", () => tr[key] = id, true)); el.value = tr[key] || ""; return; }
-      change("Sound changed", () => tr[key] = el.value || null, false);
+      change("Sound changed", () => tr[key] = el.value || null, true);   // Each one rows show the new name
       preview(el.value || tr.sound);
     };
   };
@@ -1615,7 +1648,7 @@ async function addFiles(files, cb) {
 function renderTemplates() {
   $("#tplSel").innerHTML = S.templates.map(t => `<option value="${t.id}" ${t.id === S.cur ? "selected" : ""}>${esc(t.name)}</option>`).join("");
 }
-$("#tplSel").onchange = e => { S.cur = e.target.value; S.sel = null; S.undo = []; save(); renderAll(); if (isMaster()) flash("Room preset changed"); };
+$("#tplSel").onchange = e => { S.cur = e.target.value; S.sel = null; S.undo = []; S.redo = []; save(); renderAll(); if (isMaster()) flash("Room preset changed"); };
 $("#tplMenuBtn").onclick = e => { e.stopPropagation(); $("#tplMenu").classList.toggle("open"); };
 document.addEventListener("click", () => $("#tplMenu").classList.remove("open"));
 document.querySelectorAll("[data-tpl]").forEach(b => b.onclick = async () => {
@@ -1643,22 +1676,25 @@ document.querySelectorAll("[data-tpl]").forEach(b => b.onclick = async () => {
     if (!await confirmBox({title: `Delete ${t.name}?`, text: "This can't be undone.", ok: "Delete", danger: true})) return;
     S.templates = S.templates.filter(x => x.id !== t.id); S.cur = S.templates[0].id;
   }
-  S.sel = null; S.undo = []; save(); renderAll();
+  S.sel = null; S.undo = []; S.redo = []; save(); renderAll();
 });
 
 /* ---------- undo + toast ---------- */
 function pushUndo(before, label) {
   S.undo.push(before); if (S.undo.length > 50) S.undo.shift();
+  S.redo = [];   // a new change ends the redo trail
   flash(label, true);
 }
-function undo() {
+function undo(redo) {
   if (!canEdit()) return;
-  const prev = S.undo.pop(); if (!prev) return;
+  const from = redo ? S.redo : S.undo, to = redo ? S.undo : S.redo;
+  const prev = from.pop(); if (!prev) { flash(redo ? "Nothing to redo" : "Nothing to undo"); return; }
   const t = JSON.parse(prev), i = S.templates.findIndex(x => x.id === t.id);
   if (i < 0) return;
+  to.push(JSON.stringify(S.templates[i]));
   S.templates[i] = t;
   if (S.sel && !t.tracks.some(x => x.id === S.sel)) S.sel = null;
-  save(); liveChanged(); renderLanes(); renderInspector(); flash("Undone");
+  save(); liveChanged(); renderLanes(); renderInspector(); flash(redo ? "Redone" : "Undone");
 }
 let toastTimer;
 function flash(msg, canUndo) {
@@ -1672,7 +1708,9 @@ $("#toastUndo").onclick = () => { undo(); };
 /* ---------- keys + misc ---------- */
 document.addEventListener("keydown", e => {
   const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || document.activeElement.isContentEditable;
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !typing) { e.preventDefault(); undo(); return; }
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && !typing && (k === "y" || (k === "z" && e.shiftKey))) { e.preventDefault(); undo(true); return; }
+  if ((e.ctrlKey || e.metaKey) && k === "z" && !typing) { e.preventDefault(); undo(); return; }
   if (e.code === "Space" && !typing && !$("#importModal").classList.contains("show") && !$("#endModal").classList.contains("show") && !$("#confirmModal").classList.contains("show")) {
     e.preventDefault();
     if (document.activeElement && document.activeElement.tagName === "BUTTON") document.activeElement.blur();
@@ -1769,7 +1807,7 @@ async function checkImport() {
     let name = t.name, n = 2;
     while (names.has(name)) name = `${t.name} (${n++})`;
     t.name = name;
-    S.templates.push(t); S.cur = t.id; S.sel = null; S.undo = [];
+    S.templates.push(t); S.cur = t.id; S.sel = null; S.undo = []; S.redo = [];
     save(); renderAll();
     $("#importModal").classList.remove("show");
     flash("Preset added");
@@ -1804,7 +1842,10 @@ function nameHTML(name, color, cid, showNew) {
 }
 function renderName() {
   const b = $("#nameBtn");
-  b.innerHTML = avatar(ME.name, myColor()) + `<span>${esc(ME.name)}</span>`;
+  if (b.querySelector("input")) return;   // you're editing it
+  const me = N.room && N.room.members.find(m => m.cid === ME.cid);
+  const shown = me ? me.name : ME.name;   // the room may call you "Ai 2" if "Ai" is taken
+  b.innerHTML = avatar(shown, myColor()) + `<span>${esc(shown)}</span>`;
 }
 $("#nameBtn").onclick = () => {
   const b = $("#nameBtn");
@@ -2228,6 +2269,7 @@ $("#codeForm").onsubmit = e => { e.preventDefault(); const v = $("#codeIn").valu
 function inviteLink() { return location.origin + location.pathname + "#room=" + N.room.code; }
 function renderRoom() {
   const p = $("#roomPanel"), r = N.room;
+  renderName();
   p.hidden = !r;
   $(".wrap").classList.toggle("inroom", !!r);
   if (!r) { $("#rForm").classList.remove("show"); return; }
