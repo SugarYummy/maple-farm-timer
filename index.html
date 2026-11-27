@@ -83,7 +83,21 @@ button:focus-visible,select:focus-visible,[tabindex]:focus-visible,a:focus-visib
 /* timeline */
 .tl-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .tl-head .len{margin-left:auto;color:var(--muted);font-size:13px}
-.timeline{position:relative;user-select:none;-webkit-user-select:none}
+.timeline{position:relative;user-select:none;-webkit-user-select:none;width:calc(var(--head) + var(--tail) + (100% - var(--head) - var(--tail)) * var(--z,1))}
+/* zoom: the timeline gets wider than the panel and scrolls sideways */
+.zoom{margin-left:auto;display:flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--line);border-radius:9px;background:var(--sunk)}
+.zoom button{height:26px;border:0;border-radius:7px;background:transparent;color:var(--fg);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.zoom .zb{width:28px;padding:0}
+.zoom .zb svg{width:15px;height:15px}
+.zoom .zl{min-width:52px;padding:0 8px;color:var(--muted);font-variant-numeric:tabular-nums}
+.zoom .zl.on{color:var(--fg)}
+.zoom button:hover:not(:disabled){background:color-mix(in oklab,var(--fg) 9%,transparent)}
+.zoom button:disabled{opacity:.35;cursor:default}
+.tlscroll{position:relative}
+.tlscroll.zoomed{overflow-x:auto;overflow-y:hidden;padding-bottom:6px;scrollbar-width:thin;scrollbar-color:color-mix(in oklab,var(--fg) 30%,transparent) transparent}
+.tlscroll.zoomed::-webkit-scrollbar{height:8px}
+.tlscroll.zoomed::-webkit-scrollbar-thumb{background:color-mix(in oklab,var(--fg) 28%,transparent);border-radius:99px}
+
 .ruler,.lane{display:grid;grid-template-columns:var(--head) 1fr var(--tail);align-items:center}
 .ldel{justify-self:center;width:28px;height:28px;padding:5px;border:0;border-radius:7px;background:transparent;color:var(--muted);display:flex;opacity:0;transition:opacity .15s,color .15s,background .15s}
 .ldel svg{width:16px;height:16px}
@@ -156,6 +170,15 @@ body.reordering,body.reordering *{cursor:grabbing!important;user-select:none}
 .cnt.one{opacity:0;transition:opacity .15s}
 .lane:hover .cnt.one,.lane.sel .cnt.one{opacity:1}
 .timeline.locked .cnt.one,.farmlock .cnt.one{display:none}
+@media (min-width:721px){
+  .tl-head .zoom{position:relative;z-index:9}   /* zoom still works while the timeline is locked */
+  .tlscroll.zoomed .ruler > div:first-child{position:sticky;left:0;height:100%;background:var(--surface);z-index:5}
+  .tlscroll.zoomed .ruler > div:last-child{position:sticky;right:0;height:100%;background:var(--surface);z-index:5}
+  .tlscroll.zoomed .lhead{position:sticky;left:0;z-index:5;align-self:stretch;background:var(--surface);border-radius:8px 0 0 8px}
+  .tlscroll.zoomed .lane.sel .lhead{background:color-mix(in oklab,var(--c) 9%,var(--surface))}
+  .tlscroll.zoomed .lane:hover .lhead{background:color-mix(in oklab,var(--c) 6%,var(--surface))}
+  .tlscroll.zoomed .lane > :last-child{position:sticky;right:0;z-index:5;align-self:stretch;width:var(--tail);height:auto;background:var(--surface);border-radius:0 8px 8px 0;align-items:center;justify-content:center}
+}
 @media (hover:none){.kb{display:none}}
 .playhead{position:absolute;top:0;bottom:0;width:2px;background:var(--fg);pointer-events:none;z-index:4;display:none}
 .playhead::before{content:attr(data-t);position:absolute;top:22px;left:1px;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -430,6 +453,8 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
   .lane .lhead{grid-column:1 / 4;grid-row:1;padding-right:44px}
   .lane .ltrack{grid-column:2;grid-row:2}
   .lane > span:last-child,.lane .ldel{position:absolute;right:6px;top:8px}
+  .tlscroll.zoomed .lane .lhead{position:sticky;left:0;width:var(--vw);z-index:5}
+  .tlscroll.zoomed .lane > span:last-child,.tlscroll.zoomed .lane .ldel{right:auto;left:calc(var(--sx,0px) + var(--vw) - 34px)}
   .nexts{grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
   .next{padding:8px 10px}
   .next .cd{font-size:20px}
@@ -506,13 +531,20 @@ kbd{font:600 11px var(--body);background:var(--sunk);border:1px solid var(--line
     <div class="lockveil" id="lockVeil" hidden><span class="lockpill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Locked while farming</span></div>
     <div class="tl-head">
       <h2>Timeline</h2>
+      <div class="zoom" id="zoomBox">
+        <button class="zb" id="zOut" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 12h12"/></svg></button>
+        <button class="zl" id="zFit" aria-label="Show the whole preset">All</button>
+        <button class="zb" id="zIn" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>
+      </div>
     </div>
+    <div class="tlscroll" id="tlscroll">
     <div class="timeline" id="timeline">
       <div class="ruler"><div></div><div class="bar" id="ruler"></div><div></div></div>
       <div class="tlgrid" id="tlgrid"></div>
       <div id="lanes"></div>
       <div class="playhead" id="playhead"></div>
       <div class="hoverline" id="hoverline"></div>
+    </div>
     </div>
     <div class="addwrap" id="addWrap">
       <button class="btn add" id="addTrack" aria-haspopup="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add timer</button>
@@ -1032,6 +1064,7 @@ function tick() {
   if (run && (run.id === S.cur || (run.id === "room" && inRoom()))) {
     ph.classList.add("show");
     ph.style.left = `calc(var(--head) + (100% - var(--head) - var(--tail)) * ${el / scale()})`;
+    followPlayhead(Math.min(1, el / scale()));
     const label = fmt(Math.floor(el));
     if (ph.dataset.t !== label) ph.dataset.t = label;
     document.querySelectorAll(".mk[data-at]").forEach(m => {
@@ -1078,27 +1111,99 @@ function renderControls() {
 
 /* ---------- timeline ---------- */
 function niceStep(len) {
-  const steps = [15, 30, 60, 120, 300, 600, 900, 1800, 3600];
-  return steps.find(s => len / s <= 8) || 3600;
+  const steps = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400];
+  return steps.find(s => len / s <= 8) || 86400;
 }
 function scale() {
   if (S.frozenScale) return S.frozenScale;
   const t = tpl();
-  const last = Math.max(t.length, ...events(t).map(e => e.at));
+  const reach = t.length * 1.25 + 60;   // rings way past the end (like x200) don't squash everything
+  const last = Math.max(t.length, ...events(t).map(e => e.at).filter(at => at <= reach));
   const step = niceStep(t.length);
   return Math.ceil((last + Math.max(step / 2, t.length * 0.06)) / step) * step;
 }
 const pct = at => (at / scale()) * 100 + "%";
 
+/* ---------- zoom ---------- */
+const ZOOMS = [60, 120, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400];
+// seconds you see at once. Long presets open at a 1 hour view with a scroll bar.
+function viewWin(sc) {
+  if (S.zoom === undefined) return sc > 3600 ? 3600 : sc;
+  return Math.min(S.zoom, sc);
+}
+const cssPx = name => parseFloat(getComputedStyle($("#timeline")).getPropertyValue(name)) || 0;
+function applyZoom() {
+  const sc = scale(), win = viewWin(sc), on = sc / win > 1.001;
+  const box = $("#tlscroll"), tl = $("#timeline");
+  tl.style.setProperty("--z", on ? sc / win : 1);
+  tl.style.setProperty("--vw", box.clientWidth + "px");
+  box.classList.toggle("zoomed", on);
+  if (!on) box.scrollLeft = 0;
+  const lab = $("#zFit");
+  lab.textContent = !on ? "All" : win < 3600 ? Math.round(win / 60) + " min" : +(win / 3600).toFixed(1) + " hr";
+  lab.classList.toggle("on", on); lab.disabled = !on;
+  $("#zOut").disabled = !on;
+  $("#zIn").disabled = win <= ZOOMS[0] + 0.5;
+}
+// change the zoom, keeping the time under anchorX (a screen x) in the same spot
+function setZoom(win, anchorX) {
+  const box = $("#tlscroll"), bar = $("#ruler"), sc = scale();
+  const r = bar.getBoundingClientRect(), b = box.getBoundingClientRect();
+  if (anchorX == null) {
+    const head = cssPx("--head"), tail = cssPx("--tail");
+    const ph = $("#playhead");
+    const phx = ph.classList.contains("show") ? ph.getBoundingClientRect().left : null;
+    anchorX = phx != null && phx > b.left + head && phx < b.right - tail ? phx : b.left + head + (b.width - head - tail) / 2;
+  }
+  const at = Math.max(0, Math.min(sc, (anchorX - r.left) / r.width * sc));
+  S.zoom = win >= sc ? Infinity : win;
+  renderLanes();
+  const r2 = bar.getBoundingClientRect();
+  box.scrollLeft += (r2.left + at / sc * r2.width) - anchorX;
+  syncScrollVar();
+}
+function zoomStep(dir, anchorX) {
+  const sc = scale(), win = viewWin(sc);
+  if (dir > 0) {
+    const next = [...ZOOMS].reverse().find(w => w <= win / 1.5);
+    if (next) setZoom(next, anchorX);
+  } else {
+    const next = ZOOMS.find(w => w >= win * 1.5);
+    setZoom(next && next < sc ? next : Infinity, anchorX);
+  }
+}
+const syncScrollVar = () => $("#timeline").style.setProperty("--sx", $("#tlscroll").scrollLeft + "px");
+// while dragging near the edge of a zoomed timeline, scroll along
+function edgeScroll(ev) {
+  const box = $("#tlscroll");
+  if (!box.classList.contains("zoomed")) return;
+  const b = box.getBoundingClientRect(), head = cssPx("--head"), tail = cssPx("--tail");
+  if (ev.clientX < b.left + head + 28) box.scrollLeft -= 24;
+  else if (ev.clientX > b.right - tail - 28) box.scrollLeft += 24;
+  S.userScrollAt = Date.now();
+}
+// while farming, keep the playhead in view (unless you just scrolled yourself)
+function followPlayhead(frac) {
+  const box = $("#tlscroll");
+  if (!box.classList.contains("zoomed") || Date.now() - (S.userScrollAt || 0) < 5000) return;
+  const head = cssPx("--head"), tail = cssPx("--tail");
+  const trackW = $("#ruler").getBoundingClientRect().width, view = box.clientWidth - head - tail;
+  const x = frac * trackW, left = box.scrollLeft;
+  if (x < left + 10 || x > left + view - 40) { box.scrollLeft = Math.max(0, x - view * 0.1); syncScrollVar(); }
+}
+
 function renderRuler() {
+  applyZoom();
   const t = tpl(), sc = scale(), r = $("#ruler");
   const width = r.getBoundingClientRect().width || 800;
-  const steps = [15, 30, 60, 120, 300, 600, 900, 1800, 3600];
-  const step = steps.find(st => st >= niceStep(t.length) && (st / sc) * width >= 48) || 3600;
+  const z = sc / viewWin(sc);
+  const steps = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400];
+  const minPx = sc >= 3600 ? 64 : 48;   // "1:00:00" needs more room than "10:00"
+  const step = steps.find(st => st >= niceStep(z > 1.001 ? viewWin(sc) : t.length) && (st / sc) * width >= minPx) || 86400;
   const clear = (16 / width) * sc;   // only hide a label sitting right on the end line
   let h = "", grid = "";
   // small ticks between the labels (every minute when the labels are 5 minutes apart)
-  const minor = [step / 5, step / 4, step / 3, step / 2].find(m => m >= 15 && Number.isInteger(m) && (m / sc) * width >= 10);
+  const minor = [step / 5, step / 4, step / 3, step / 2].find(m => m >= 1 && Number.isInteger(m) && (m / sc) * width >= 10);
   if (minor) for (let x = minor; x < sc; x += minor) if (x % step) h += `<div class="tick minor" style="left:${pct(x)}"></div>`;
   for (let x = 0; x <= sc + 0.001; x += step) {
     const label = x === 0 || Math.abs(x - t.length) > clear ? fmt(x) : "";
@@ -1119,6 +1224,7 @@ function laneSummary(tr) {
 }
 function renderLanes() {
   const t = tpl();
+  applyZoom();   // markers measure the zoomed width
   $("#lanes").innerHTML = t.tracks.map(tr => `
     <div class="lane ${S.sel === tr.id ? "sel" : ""} ${isMuted(tr.id) ? "muted" : ""} ${S.reorderId === tr.id ? "ph" : ""}" data-id="${tr.id}" style="--c:${tr.color}">
       <div class="lhead" style="--c:${tr.color}" data-act="select">${isGuest() ? "" : `<span class="grip">${ICON.grip}</span>`}<span class="dot"></span><div class="tx"><div class="nm">${esc(tr.name)}</div><div class="sm">${esc(laneSummary(tr))}</div></div><button class="mute ${isMuted(tr.id) ? "on" : ""}" aria-label="${isMuted(tr.id) ? "Unmute" : "Mute"} ${esc(tr.name)}">${isMuted(tr.id) ? ICON.muted : ICON.vol}</button></div>
@@ -1143,10 +1249,11 @@ function renderLanes() {
   tick();
 }
 function markersHTML(tr) {
-  const t = tpl();
+  const t = tpl(), sc = scale();
   let h = "", lastAt = 0;
   for (let i = 0; i < tr.count; i++) {
     const at = tr.first + i * (tr.every || 0);
+    if (at > sc) { lastAt = sc; break; }   // way past the end: not drawn
     const snd = soundAt(tr, i);
     const cls = ["mk", isMuted(tr.id) ? "mutedmk" : "", i === 0 ? "first" : "", snd === "off" ? "offmk" : snd !== tr.sound ? "last" : "", at >= t.length ? "cut" : ""].join(" ");
     h += `<div class="${cls}" data-i="${i}" data-at="${at}" data-tid="${tr.id}" style="left:${pct(at)}" data-tip="${esc(tr.name)}${tr.count > 1 ? " " + (i + 1) : ""} \u00b7 ${fmt(at, true)} \u00b7 ${snd === "off" ? "silent" : esc(soundName(snd))}"></div>`;
@@ -1154,7 +1261,9 @@ function markersHTML(tr) {
     if (!tr.every) break;
   }
   const one = tr.count === 1;
-  const flip = lastAt / scale() > 0.8 && document.documentElement.clientWidth < 720;
+  const trackW = $("#ruler").getBoundingClientRect().width || 800;
+  const room = (1 - Math.min(1, lastAt / sc)) * trackW + cssPx("--tail");   // space to the right of the last ring
+  const flip = (lastAt / sc > 0.8 && document.documentElement.clientWidth < 720) || room < 64;
   h += `<div class="cnt ${one ? "one" : ""} ${flip ? "flip" : ""}" data-act="count" style="left:${pct(lastAt)}">${one ? "+ repeat" : "\u00d7" + tr.count}</div>`;
   return h;
 }
@@ -1212,6 +1321,7 @@ function dragLane(e, el) {
   const move = ev => {
     if (!moved && Math.abs(ev.clientX - start.x) < 3) return;
     moved = true;
+    edgeScroll(ev);
     const fine = ev.shiftKey, t = timeAt(ev.clientX, el);
     let label;
     if (isCount) {
@@ -1259,6 +1369,7 @@ function dragEnd(e) {
   let moved = false;
   const move = ev => {
     moved = true;
+    edgeScroll(ev);
     t.length = Math.max(30, snap(timeAt(ev.clientX, bar), ev.shiftKey ? 1 : 15));
     h.style.left = pct(t.length);
     h.dataset.label = fmt(t.length, true) + " end";
@@ -1648,7 +1759,7 @@ async function addFiles(files, cb) {
 function renderTemplates() {
   $("#tplSel").innerHTML = S.templates.map(t => `<option value="${t.id}" ${t.id === S.cur ? "selected" : ""}>${esc(t.name)}</option>`).join("");
 }
-$("#tplSel").onchange = e => { S.cur = e.target.value; S.sel = null; S.undo = []; S.redo = []; save(); renderAll(); if (isMaster()) flash("Room preset changed"); };
+$("#tplSel").onchange = e => { S.cur = e.target.value; S.sel = null; S.undo = []; S.redo = []; S.zoom = undefined; save(); renderAll(); if (isMaster()) flash("Room preset changed"); };
 $("#tplMenuBtn").onclick = e => { e.stopPropagation(); $("#tplMenu").classList.toggle("open"); };
 document.addEventListener("click", () => $("#tplMenu").classList.remove("open"));
 document.querySelectorAll("[data-tpl]").forEach(b => b.onclick = async () => {
@@ -1676,7 +1787,7 @@ document.querySelectorAll("[data-tpl]").forEach(b => b.onclick = async () => {
     if (!await confirmBox({title: `Delete ${t.name}?`, text: "This can't be undone.", ok: "Delete", danger: true})) return;
     S.templates = S.templates.filter(x => x.id !== t.id); S.cur = S.templates[0].id;
   }
-  S.sel = null; S.undo = []; S.redo = []; save(); renderAll();
+  S.sel = null; S.undo = []; S.redo = []; S.zoom = undefined; save(); renderAll();
 });
 
 /* ---------- undo + toast ---------- */
@@ -1730,6 +1841,33 @@ $("#themeBtn").onclick = () => {
 };
 $("#resumeBtn").onclick = () => schedule();
 let resizeTimer;
+$("#zIn").onclick = () => zoomStep(1);
+$("#zOut").onclick = () => zoomStep(-1);
+$("#zFit").onclick = () => setZoom(Infinity);
+(() => {
+  const box = $("#tlscroll"), panel = $("#tlPanel");
+  let acc = 0;
+  // Ctrl + scroll (or a trackpad pinch) zooms around the mouse
+  panel.addEventListener("wheel", e => {
+    if (e.ctrlKey || e.metaKey) {
+      if (!e.target.closest("#tlscroll, #lockVeil")) return;
+      e.preventDefault();
+      acc += e.deltaY;
+      if (Math.abs(acc) >= 40) { zoomStep(acc < 0 ? 1 : -1, e.clientX); acc = 0; }
+      return;
+    }
+    // locked while farming: sideways scrolling still moves the timeline
+    if (!$("#lockVeil").hidden && box.classList.contains("zoomed") && e.target.closest("#lockVeil")) {
+      const dx = e.shiftKey ? e.deltaY : e.deltaX;
+      if (Math.abs(dx) > Math.abs(e.shiftKey ? 0 : e.deltaY)) { e.preventDefault(); box.scrollLeft += dx; S.userScrollAt = Date.now(); }
+    }
+  }, {passive: false});
+  const mine = () => S.userScrollAt = Date.now();
+  box.addEventListener("wheel", mine, {passive: true});
+  box.addEventListener("pointerdown", mine);
+  box.addEventListener("touchstart", mine, {passive: true});
+  box.addEventListener("scroll", syncScrollVar, {passive: true});
+})();
 window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderRuler, 120); tick(); });
 
 /* ---------- share links (no server, everything is in the link) ---------- */
@@ -1807,7 +1945,7 @@ async function checkImport() {
     let name = t.name, n = 2;
     while (names.has(name)) name = `${t.name} (${n++})`;
     t.name = name;
-    S.templates.push(t); S.cur = t.id; S.sel = null; S.undo = []; S.redo = [];
+    S.templates.push(t); S.cur = t.id; S.sel = null; S.undo = []; S.redo = []; S.zoom = undefined;
     save(); renderAll();
     $("#importModal").classList.remove("show");
     flash("Preset added");
